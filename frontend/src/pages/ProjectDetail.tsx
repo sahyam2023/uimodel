@@ -94,7 +94,7 @@ export function ProjectDetail() {
               </div>
           </CardContent>
         </Card>
-
+        
         {/* Step 3: Train Model */}
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
@@ -118,11 +118,11 @@ export function ProjectDetail() {
                 step={1}
                 value={[trainingTime]}
                 onValueChange={(value) => setTrainingTime(value[0])}
-                className="[&>span:first-child]:h-1 [&>span:first-child]:bg-slate-700 [&>span:first-child>span]:bg-indigo-400"
+                className="[&>span:first-child]:h-1 [&>span:first-child]:bg-slate-700 [&>span:first-child>span]:bg-indigo-400 [&>[role=slider]]:bg-indigo-500 [&>[role=slider]]:border-indigo-300/50"
               />
             </div>
-            <Button
-              onClick={() => setIsTraining(true)}
+            <Button 
+              onClick={() => setIsTraining(true)} 
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
             >
               <PlayCircle className="mr-2 h-5 w-5" />
