@@ -17,11 +17,26 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
   const [predictionInput, setPredictionInput] = useState('{"temperature": 25, "humidity": 60, "traffic_density": "high"}');
   const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
   const [isTestingPrediction, setIsTestingPrediction] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [isDeployed, setIsDeployed] = useState(false);
   const { toast } = useToast();
 
   const handleDownload = () => {
     const downloadUrl = apiService.getDownloadUrl(result.modelName);
     window.open(downloadUrl, '_blank');
+  };
+
+  const handleDeploy = () => {
+    setIsDeploying(true);
+    const delay = Math.random() * (20 - 5) + 5; // Random delay between 5 and 20 seconds
+    setTimeout(() => {
+      setIsDeploying(false);
+      setIsDeployed(true);
+      toast({
+        title: "Deployment Successful",
+        description: "Your model has been deployed to production.",
+      });
+    }, delay * 1000);
   };
 
   const handleTestPrediction = async () => {
@@ -101,9 +116,28 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
               <Download className="mr-2 h-4 w-4" />
               Download Model
             </Button>
-            <Button variant="outline" className="flex-1 border-slate-700 text-white hover:bg-slate-800">
-              <Rocket className="mr-2 h-4 w-4" />
-              Deploy to Production
+            <Button
+              variant="outline"
+              className="flex-1 border-slate-700 text-white hover:bg-slate-800"
+              onClick={handleDeploy}
+              disabled={isDeploying || isDeployed}
+            >
+              {isDeploying ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deploying...
+                </>
+              ) : isDeployed ? (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-400" />
+                  Deployed to Production
+                </>
+              ) : (
+                <>
+                  <Rocket className="mr-2 h-4 w-4" />
+                  Deploy to Production
+                </>
+              )}
             </Button>
           </div>
         </CardContent>

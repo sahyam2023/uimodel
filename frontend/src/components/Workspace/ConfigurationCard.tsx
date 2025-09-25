@@ -185,22 +185,22 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
 
           <TabsContent value="validation" className="space-y-6 mt-6">
             <div className="space-y-6">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <Label className="text-slate-300">Validation Strategy</Label>
-                <RadioGroup
+                <Select
                   value={parameters.validationType}
-                  onValueChange={(value: 'train-test' | 'k-fold') => updateParameter('validationType', value)}
-                  className="space-y-3"
+                  onValueChange={(value) => updateParameter('validationType', value)}
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="train-test" id="train-test" />
-                    <Label htmlFor="train-test" className="text-slate-300">Train-Test Split</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="k-fold" id="k-fold" />
-                    <Label htmlFor="k-fold" className="text-slate-300">K-Fold Cross-Validation</Label>
-                  </div>
-                </RadioGroup>
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="train-test">Train-Test Split</SelectItem>
+                    <SelectItem value="k-fold">K-Fold Cross-Validation</SelectItem>
+                    <SelectItem value="leave-one-out">Leave-One-Out Cross-Validation</SelectItem>
+                    <SelectItem value="stratified-k-fold">Stratified K-Fold</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {parameters.validationType === 'train-test' && (

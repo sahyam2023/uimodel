@@ -107,40 +107,65 @@ import random
 @app.route('/api/generate_model', methods=['POST'])
 def generate_model():
     """
-    The core "dummy" endpoint. It simulates model generation.
-    It now accepts a user-defined model name and returns a randomly selected model.
+    The core "dummy" endpoint. It simulates model generation based on user parameters.
     """
-    # Get the JSON data sent from the frontend
     params = request.json
-    user_model_name = params.get('modelName', 'Unnamed Model')
+    domain = params.get('domain', 'default')
+    training_time_minutes = params.get('trainingTime', 1)
+
     print(f"Received parameters for model generation: {params}")
 
     # --- Simulate Processing Delay ---
-    print("Simulating model training for 5 seconds...")
-    time.sleep(5)
+    training_time_seconds = training_time_minutes * 60
+    print(f"Simulating model training for {training_time_minutes} minutes ({training_time_seconds} seconds)...")
+    time.sleep(training_time_seconds)
     print("Simulation complete.")
 
     # --- Dynamic Model Selection ---
-    # Randomly pick a model from the predefined_models directory.
     try:
-        available_models = [f for f in os.listdir(MODELS_FOLDER) if os.path.isfile(os.path.join(MODELS_FOLDER, f))]
-        if not available_models:
-            return jsonify({'error': 'No predefined models found on the server.'}), 500
+        available_models = {f: f for f in os.listdir(MODELS_FOLDER) if os.path.isfile(os.path.join(MODELS_FOLDER, f))}
 
-        selected_model_file = random.choice(available_models)
-        print(f"Randomly selected model: {selected_model_file}")
+        # Try to find a model that exactly matches the domain name (case-sensitive)
+        selected_model_file = available_models.get(domain)
+
+        if selected_model_file:
+            print(f"Selected model for domain '{domain}': {selected_model_file}")
+        else:
+            # Fallback to a random model if no specific model is found
+            print(f"No model found for domain '{domain}'. Falling back to a random model.")
+            if not available_models:
+                return jsonify({'error': 'No predefined models found on the server.'}), 500
+            selected_model_file = random.choice(list(available_models.values()))
+            print(f"Randomly selected model: {selected_model_file}")
 
     except Exception as e:
         print(f"Error selecting model: {e}")
         return jsonify({'error': 'Could not select a model.'}), 500
 
+    # --- Generate Dummy Metrics ---
+    if 4 <= training_time_minutes <= 20:
+        accuracy = round(random.uniform(80, 90), 2)
+    elif 20 < training_time_minutes <= 40:
+        accuracy = round(random.uniform(90, 95), 2)
+    elif 40 < training_time_minutes <= 60:
+        accuracy = round(random.uniform(93, 96.5), 2)
+    else:
+        accuracy = round(random.uniform(75, 85), 2)  # Fallback
+
+    precision = round(random.uniform(88, 99), 2)
+    recall = round(random.uniform(82, 97), 2)
+    f1_score = round(2 * (precision * recall) / (precision + recall), 2)
+
     # --- Prepare the Response ---
-    # The response uses the user's name but provides a download link to the actual file.
     return jsonify({
         'message': 'Model generation completed successfully!',
-        'modelName': user_model_name, # The name the user provided
-        'downloadUrl': f'/api/download_model/{selected_model_file}', # The actual file to download
+        'modelName': f"{domain.replace(' ', '_')}_Model_v1",
+        'downloadUrl': f'/api/download_model/{selected_model_file}',
         'apiEndpoint': '/api/predict',
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1Score': f1_score,
         'parametersReceived': params
     }), 200
 
