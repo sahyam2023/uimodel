@@ -5,67 +5,92 @@ import { ConfigurationCard } from '@/components/Workspace/ConfigurationCard';
 import { TrainingCard } from '@/components/Workspace/TrainingCard';
 import { DeploymentCard } from '@/components/Workspace/DeploymentCard';
 import { LiveMonitoringSidebar } from '@/components/Workspace/LiveMonitoringSidebar';
-import { ModelParameters, GenerationResult } from '@/types';
+import { ModelParameters, GenerationResult, TrainingStatus } from '@/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { XCircle } from 'lucide-react';
 
-interface WorkspaceProps {
-  isTraining: boolean;
-  isComplete: boolean;
-  generationResult: GenerationResult | null;
+// Define a comprehensive state for the entire workspace
+interface WorkspaceState {
+  status: TrainingStatus;
+  isFileUploaded: boolean;
+  modelParameters: ModelParameters | null;
   estimatedTrainingTime: number;
-  onStartTraining: (params: ModelParameters) => void;
-  onStopTraining: () => void;
+  generationResult: GenerationResult | null;
 }
 
+interface WorkspaceProps {
+  workspaceState: WorkspaceState;
+  onStartTraining: (params: ModelParameters) => void;
+  onStopTraining: () => void;
+  onFileUploadSuccess: (isSuccess: boolean) => void;
+  onParametersChange: (params: ModelParameters) => void;
+}
+
+const initialModelParameters: ModelParameters = {
+  analyticsType: 'Predictive Analytics',
+  domain: 'Transport',
+  modelType: 'Regression',
+  trainingTime: 4,
+  handleMissingData: 'none',
+  dataCleaning: 'none',
+  featureScaling: 'none',
+  geoFencing: true,
+  calculateDistance: false,
+  learningRate: 0.01,
+  epochs: 100,
+  batchSize: 32,
+  validationType: 'train-test',
+  trainTestSplit: 80,
+  kFolds: 5,
+};
+
 export function Workspace({
-  isTraining,
-  isComplete,
-  generationResult,
-  estimatedTrainingTime,
+  workspaceState,
   onStartTraining,
   onStopTraining,
+  onFileUploadSuccess,
+  onParametersChange,
 }: WorkspaceProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isFileUploaded, setIsFileUploaded] = useState(false);
-  const [showMonitoring, setShowMonitoring] = useState(false);
-  
-  const [modelParameters, setModelParameters] = useState<ModelParameters>({
-    analyticsType: 'Predictive Analytics',
-    domain: 'Transport',
-    modelType: 'Regression',
-    trainingTime: 4,
-    handleMissingData: 'none',
-    dataCleaning: 'none',
-    featureScaling: 'none',
-    geoFencing: true,
-    calculateDistance: false,
-    learningRate: 0.01,
-    epochs: 100,
-    batchSize: 32,
-    validationType: 'train-test',
-    trainTestSplit: 80,
-    kFolds: 5,
-  });
+
+  const {
+    status,
+    isFileUploaded,
+    modelParameters,
+    estimatedTrainingTime,
+    generationResult,
+    trainingStartTime,
+  } = workspaceState;
+
+  const isTraining = status === 'training';
+  const isComplete = status === 'completed';
+  const isStopped = status === 'stopped';
 
   useEffect(() => {
-    setShowMonitoring(isTraining);
-    if (isTraining) {
-      setCurrentStep(3);
-    } else if (isComplete) {
-      setCurrentStep(4);
-    } else if (isFileUploaded) {
-      setCurrentStep(2);
-    } else {
-      setCurrentStep(1);
+    // If modelParameters is null in the global state, initialize it.
+    if (!modelParameters) {
+      onParametersChange(initialModelParameters);
     }
+  }, [modelParameters, onParametersChange]);
+
+  useEffect(() => {
+    if (isTraining) setCurrentStep(3);
+    else if (isComplete) setCurrentStep(4);
+    else if (isFileUploaded) setCurrentStep(2);
+    else setCurrentStep(1);
   }, [isTraining, isComplete, isFileUploaded]);
 
-  const handleFileUploadSuccess = () => {
-    setIsFileUploaded(true);
+  const handleStartTrainingClick = () => {
+    if (modelParameters) {
+      onStartTraining(modelParameters);
+    }
   };
 
-  const handleStartTrainingClick = () => {
-    onStartTraining(modelParameters);
-  };
+  if (!modelParameters) {
+    // Render a loading state or null while parameters are being initialized
+    return null;
+  }
 
   return (
     <div className="space-y-8">
@@ -76,20 +101,21 @@ export function Workspace({
         </p>
       </div>
 
-      <VisualStepper 
-        currentStep={currentStep} 
-        isTraining={isTraining} 
-        isComplete={isComplete} 
+      <VisualStepper
+        currentStep={currentStep}
+        isTraining={isTraining}
+        isComplete={isComplete}
       />
 
       <div className={`grid grid-cols-1 gap-6 transition-all duration-300 ${
-        showMonitoring ? 'lg:grid-cols-2 lg:pr-[22rem]' : 'lg:grid-cols-2'
+        isTraining ? 'lg:grid-cols-2 lg:pr-[22rem]' : 'lg:grid-cols-2'
       }`}>
         <div className="space-y-6">
-          <DataIngestCard onUploadSuccess={handleFileUploadSuccess} />
+          <DataIngestCard onUploadSuccess={onFileUploadSuccess} isFileUploaded={isFileUploaded} />
           <ConfigurationCard
             parameters={modelParameters}
-            onParametersChange={setModelParameters}
+            onParametersChange={onParametersChange}
+            isTraining={isTraining}
           />
         </div>
 
@@ -100,16 +126,36 @@ export function Workspace({
             onStartTraining={handleStartTrainingClick}
             onStopTraining={onStopTraining}
             estimatedTrainingTime={estimatedTrainingTime}
+            trainingStartTime={trainingStartTime}
           />
           
-          {generationResult && (
+          {isComplete && generationResult && (
             <DeploymentCard result={generationResult} />
+          )}
+
+          {isStopped && (
+             <Card className="border-amber-700 bg-amber-900/30">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-amber-300">
+                  <XCircle className="h-5 w-5" />
+                  <span>Training Stopped</span>
+                </CardTitle>
+                <CardDescription className="text-amber-400">
+                  The training process was manually halted by the user.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-300">
+                  You can adjust your parameters and start the training again when you are ready.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
 
-      <LiveMonitoringSidebar 
-        isVisible={showMonitoring} 
+      <LiveMonitoringSidebar
+        isVisible={isTraining}
         isTraining={isTraining}
         estimatedTime={estimatedTrainingTime}
       />

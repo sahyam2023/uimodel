@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface DataIngestCardProps {
-  onUploadSuccess: () => void;
+  onUploadSuccess: (isSuccess: boolean) => void;
+  isFileUploaded: boolean;
 }
 
 interface DataSource {
@@ -21,11 +22,12 @@ interface DataSource {
   isExternalConnected?: boolean;
 }
 
-export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
+export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCardProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedDataSources = sessionStorage.getItem('dataSources');
@@ -57,7 +59,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
       const response = await apiService.uploadFile(selectedFile);
       setUploadStatus('success');
       toast.success("Upload Successful", { description: response.message });
-      onUploadSuccess();
+      onUploadSuccess(true);
     } catch (error) {
       setUploadStatus('error');
       toast.error("Upload Failed", { description: "Failed to upload file. Please try again." });
@@ -97,6 +99,8 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
     }, 2500);
   };
 
+  const showSuccessMessage = uploadStatus === 'success' || (isFileUploaded && !selectedFile);
+
   return (
     <Card className="bg-slate-900 border-slate-800">
       <CardHeader>
@@ -112,19 +116,31 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
         {/* File Upload Section */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="file-upload" className="text-sm font-medium text-slate-300">
+            <Label className="text-sm font-medium text-slate-300">
               Upload Dataset File
             </Label>
-            <Input
-              id="file-upload"
-              type="file"
-              accept=".csv,.json,.xml"
-              onChange={handleFileSelect}
-              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-4 file:py-2 file:mr-4 file:rounded-md"
-            />
+            <div className="flex items-center border border-slate-700 rounded-md bg-slate-900 pr-3">
+                <Label
+                  htmlFor="file-upload"
+                  className="cursor-pointer bg-slate-800 hover:bg-slate-700 transition-colors text-slate-300 text-sm font-medium h-10 px-4 py-2 flex items-center rounded-l-md border-r border-slate-700"
+                >
+                  Choose file
+                </Label>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  accept=".csv,.json,.xml"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <span className="text-sm text-slate-400 truncate ml-3">
+                  {selectedFile ? selectedFile.name : 'No file selected'}
+                </span>
+            </div>
           </div>
 
-          {selectedFile && (
+          {selectedFile && !showSuccessMessage && (
             <div className="flex items-center space-x-2 p-3 bg-slate-800 rounded-md border border-slate-700">
               <File className="h-4 w-4 text-slate-400" />
               <span className="text-sm text-slate-300 flex-1">{selectedFile.name}</span>
@@ -134,7 +150,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
             </div>
           )}
 
-          {uploadStatus === 'success' && (
+          {showSuccessMessage && (
             <div className="flex items-center space-x-2 p-3 bg-green-900/20 border border-green-800 rounded-md">
               <CircleCheck className="h-4 w-4 text-green-400" />
               <span className="text-sm text-green-300">File uploaded successfully!</span>
@@ -150,7 +166,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
 
           <Button
             onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
+            disabled={!selectedFile || isUploading || showSuccessMessage}
             className="w-full bg-indigo-600 hover:bg-indigo-700"
           >
             {isUploading ? (

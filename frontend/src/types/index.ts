@@ -1,3 +1,5 @@
+export type TrainingStatus = 'idle' | 'training' | 'completed' | 'stopped';
+
 export interface ModelParameters {
   analyticsType: string;
   domain: string;
@@ -5,7 +7,7 @@ export interface ModelParameters {
   trainingTime: number;
   handleMissingData: string;
   dataCleaning: string;
-  featureScaling: string;
+  featureScaling:string;
   geoFencing: boolean;
   calculateDistance: boolean;
   learningRate: number;
