@@ -14,6 +14,7 @@ export interface ModelParameters {
   validationType: 'train-test' | 'k-fold' | 'leave-one-out' | 'stratified-k-fold';
   trainTestSplit: number;
   kFolds: number;
+  modelName?: string;
 }
 
 export interface GenerationResult {

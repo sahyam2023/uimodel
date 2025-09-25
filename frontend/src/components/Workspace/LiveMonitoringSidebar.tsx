@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, TrendingUp } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Cpu } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface LiveMonitoringSidebarProps {
@@ -87,6 +87,8 @@ const getRandomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)
 export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: LiveMonitoringSidebarProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [accuracyData, setAccuracyData] = useState<Array<{ step: number; accuracy: number }>>([]);
+  const [lossData, setLossData] = useState<Array<{ step: number; loss: number }>>([]);
+  const [computeData, setComputeData] = useState<Array<{ step: number; gpu: number; cpu: number }>>([]);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const trainingStateRef = useRef({
     intervalId: null as NodeJS.Timeout | null,
@@ -102,20 +104,28 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
     setLogs(prev => [...prev.slice(-199), `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
-  const updateAccuracy = () => {
-    const { currentStep, totalSteps, targetAccuracy } = trainingStateRef.current;
+  const updateMetrics = () => {
+    const { currentStep, totalSteps, targetAccuracy, epoch } = trainingStateRef.current;
     const progress = currentStep / totalSteps;
 
-    // Sigmoid-like curve for realistic accuracy growth
-    const steepness = 5;
-    const midpoint = 0.5;
-    const currentAccuracy = targetAccuracy * (1 / (1 + Math.exp(-steepness * (progress - midpoint))));
+    // Accuracy
+    const accSteepness = 5;
+    const accMidpoint = 0.5;
+    const currentAccuracy = targetAccuracy * (1 / (1 + Math.exp(-accSteepness * (progress - accMidpoint))));
+    const accNoise = (Math.random() - 0.5) * 0.03 * (1 - progress);
+    const finalAccuracy = Math.max(0, Math.min(0.995, currentAccuracy + accNoise));
+    setAccuracyData(prev => [...prev.slice(-99), { step: epoch, accuracy: finalAccuracy }]);
 
-    // Add some noise
-    const noise = (Math.random() - 0.5) * 0.03 * (1 - progress);
-    const finalAccuracy = Math.max(0, Math.min(0.995, currentAccuracy + noise));
+    // Loss
+    const initialLoss = 1.5;
+    const finalLoss = 0.1;
+    const loss = initialLoss * Math.exp(-progress * 5) + finalLoss + (Math.random() - 0.5) * 0.1 * (1 - progress);
+    setLossData(prev => [...prev.slice(-99), { step: epoch, loss: Math.max(0.05, loss) }]);
 
-    setAccuracyData(prev => [...prev.slice(-99), { step: trainingStateRef.current.epoch, accuracy: finalAccuracy }]);
+    // Compute
+    const gpuUsage = 80 + Math.random() * 20 * Math.sin(progress * Math.PI);
+    const cpuUsage = 40 + Math.random() * 30 * Math.sin(progress * Math.PI * 2);
+    setComputeData(prev => [...prev.slice(-99), { step: epoch, gpu: gpuUsage, cpu: cpuUsage }]);
   };
 
   const runTrainingSimulation = () => {
@@ -151,17 +161,16 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
       case 'training':
         const stepsPerEpoch = Math.floor(state.totalSteps / state.totalEpochs);
         if (state.currentStep % stepsPerEpoch === 0) {
-          updateAccuracy();
-          const [loss, acc, val_loss, val_acc] = [Math.random(), accuracyData.at(-1)?.accuracy || 0, Math.random(), accuracyData.at(-1)?.accuracy || 0];
-          const epochLog = `[METRIC] Epoch ${state.epoch}/${state.totalEpochs} - loss: ${loss.toFixed(4)}, acc: ${acc.toFixed(4)}, val_loss: ${val_loss.toFixed(4)}, val_acc: ${val_acc.toFixed(4)}`;
+          updateMetrics();
+          const acc = accuracyData.at(-1)?.accuracy || 0;
+          const loss = lossData.at(-1)?.loss || 0;
+          const epochLog = `[METRIC] Epoch ${state.epoch}/${state.totalEpochs} - loss: ${loss.toFixed(4)}, acc: ${acc.toFixed(4)}, val_loss: ${(loss * 1.1).toFixed(4)}, val_acc: ${(acc * 0.98).toFixed(4)}`;
           addLog(epochLog);
 
-          // Add a random system or warning log
           if (Math.random() < 0.3) {
             addLog(getRandomItem([...realisticLogs.system, ...realisticLogs.warning]));
           }
 
-          // Special logs at 50% and 75%
           if (state.epoch === Math.floor(state.totalEpochs * 0.5) || state.epoch === Math.floor(state.totalEpochs * 0.75)) {
             addLog(getRandomItem(realisticLogs.special));
           }
@@ -171,7 +180,7 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
         if (state.epoch > state.totalEpochs) {
           state.stage = 'finalizing';
           state.currentStep = 1;
-          updateAccuracy(); // Final accuracy update
+          updateMetrics();
         }
         break;
       case 'finalizing':
@@ -196,6 +205,8 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
     if (isTraining) {
       setLogs([]);
       setAccuracyData([]);
+      setLossData([]);
+      setComputeData([]);
 
       const trainingTimeMinutes = estimatedTime / 60;
       let targetAccuracy;
@@ -282,30 +293,82 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
           </Card>
 
           {accuracyData.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>Validation Accuracy</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={150}>
-                  <LineChart data={accuracyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="step" stroke="#64748b" fontSize={10} name="Epoch" />
-                    <YAxis stroke="#64748b" fontSize={10} domain={[0, 1.0]} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
-                      labelClassName="font-bold"
-                      itemStyle={{ color: '#818cf8' }}
-                      formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
-                    />
-                    <Line type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <>
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Validation Accuracy</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <LineChart data={accuracyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="step" stroke="#64748b" fontSize={10} name="Epoch" />
+                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 1.0]} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
+                        labelClassName="font-bold"
+                        itemStyle={{ color: '#818cf8' }}
+                        formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
+                      />
+                      <Line type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
+                    <TrendingDown className="h-4 w-4" />
+                    <span>Training Loss</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <LineChart data={lossData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="step" stroke="#64748b" fontSize={10} name="Epoch" />
+                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 'auto']} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
+                        labelClassName="font-bold"
+                        itemStyle={{ color: '#f87171' }}
+                        formatter={(value: number) => value.toFixed(4)}
+                      />
+                      <Line type="monotone" dataKey="loss" stroke="#ef4444" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
+                    <Cpu className="h-4 w-4" />
+                    <span>Computational Graph</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <LineChart data={computeData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="step" stroke="#64748b" fontSize={10} name="Epoch" />
+                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} unit="%" />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
+                        labelClassName="font-bold"
+                        formatter={(value: number) => `${value.toFixed(1)}%`}
+                      />
+                      <Line type="monotone" dataKey="gpu" name="GPU" stroke="#a78bfa" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="cpu" name="CPU" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </>
           )}
         </div>
       </ScrollArea>

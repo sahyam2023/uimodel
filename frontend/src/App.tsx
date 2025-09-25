@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { ChatBot } from '@/components/AIAssistant/ChatBot';
@@ -13,15 +13,17 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { apiService } from './services/api';
 import { ModelParameters, GenerationResult } from './types';
+import { usePersistentState } from './hooks/usePersistentState';
 
 function App() {
   // Global state for training
-  const [isTraining, setIsTraining] = useState(false);
-  const [estimatedTrainingTime, setEstimatedTrainingTime] = useState(0);
-  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
-  const [isComplete, setIsComplete] = useState(false);
+  const [isTraining, setIsTraining] = usePersistentState('isTraining', false);
+  const [estimatedTrainingTime, setEstimatedTrainingTime] = usePersistentState('estimatedTrainingTime', 0);
+  const [generationResult, setGenerationResult] = usePersistentState<GenerationResult | null>('generationResult', null);
+  const [isComplete, setIsComplete] = usePersistentState('isComplete', false);
+  const [isFileUploaded, setIsFileUploaded] = usePersistentState('isFileUploaded', false);
 
-  const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const trainingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleStartTraining = (modelParameters: ModelParameters) => {
     setIsTraining(true);
@@ -35,69 +37,73 @@ function App() {
       description: `Model training initiated. Estimated completion in ~${modelParameters.trainingTime} minutes.`,
     });
 
-    trainingTimeoutRef.current = setTimeout(async () => {
-      try {
-        // 1. Final Accuracy Calculation
-        const { trainingTime } = modelParameters;
-        let finalAccuracy: number;
-        if (trainingTime <= 10) {
-          finalAccuracy = 75 + Math.random() * 10; // 75-85%
-        } else if (trainingTime <= 30) {
-          finalAccuracy = 80 + Math.random() * 10; // 80-90%
-        } else {
-          finalAccuracy = 85 + Math.random() * 10; // 85-95%
+    let elapsed = 0;
+    trainingIntervalRef.current = setInterval(() => {
+      elapsed++;
+      if (elapsed >= trainingTimeInSeconds) {
+        if (trainingIntervalRef.current) {
+          clearInterval(trainingIntervalRef.current);
         }
+        // Finish training and generate final results
+        (async () => {
+          try {
+            const { trainingTime } = modelParameters;
+            let finalAccuracy: number;
+            if (trainingTime <= 10) {
+              finalAccuracy = 75 + Math.random() * 10; // 75-85%
+            } else if (trainingTime <= 30) {
+              finalAccuracy = 80 + Math.random() * 10; // 80-90%
+            } else {
+              finalAccuracy = 85 + Math.random() * 10; // 85-95%
+            }
 
-        // 2. Model Selection Logic
-        const getModelNameByDomain = (domain: string): string => {
-          switch (domain) {
-            case 'City':
-              return 'City.onnx';
-            case 'Oil and Gas':
-              return 'OilandGas.pkl';
-            case 'Traffic':
-              return 'Traffic.onnx';
-            case 'Airports':
-              return 'Airports.onnx';
-            default:
-              return 'GenericModel.pkl';
+            const getModelNameByDomain = (domain: string): string => {
+              switch (domain) {
+                case 'City': return 'City.onnx';
+                case 'Oil and Gas': return 'OilandGas.pkl';
+                case 'Traffic': return 'Traffic.onnx';
+                case 'Airports': return 'Airports.onnx';
+                default: return 'GenericModel.pkl';
+              }
+            };
+
+            const modelName = getModelNameByDomain(modelParameters.domain);
+            const result = await apiService.generateModel({ ...modelParameters, modelName });
+
+            const enhancedResult: GenerationResult = {
+              ...result,
+              modelName,
+              accuracy: parseFloat(finalAccuracy.toFixed(2)),
+              precision: parseFloat((finalAccuracy * (0.9 + Math.random() * 0.1)).toFixed(2)),
+              recall: parseFloat((finalAccuracy * (0.92 + Math.random() * 0.1)).toFixed(2)),
+              f1Score: parseFloat((finalAccuracy * (0.91 + Math.random() * 0.1)).toFixed(2)),
+            };
+
+            setGenerationResult(enhancedResult);
+            setIsComplete(true);
+            setIsTraining(false);
+
+            toast.success('Model Training Complete!', {
+              description: `Your model "${enhancedResult.modelName}" achieved ${enhancedResult.accuracy}% accuracy.`,
+            });
+          } catch (error) {
+            toast.error('Training Failed', {
+              description: 'Failed to train model. Please check your parameters and try again.',
+            });
+            setIsTraining(false);
           }
-        };
-
-        const modelName = getModelNameByDomain(modelParameters.domain);
-        console.log(`[Model Selection] Domain: '${modelParameters.domain}', Selected Model: '${modelName}'`);
-        const result = await apiService.generateModel({ ...modelParameters, modelName });
-
-        const enhancedResult: GenerationResult = {
-          ...result,
-          modelName, // Override with the correct model name
-          accuracy: parseFloat(finalAccuracy.toFixed(2)),
-          precision: parseFloat((finalAccuracy * (0.9 + Math.random() * 0.1)).toFixed(2)),
-          recall: parseFloat((finalAccuracy * (0.92 + Math.random() * 0.1)).toFixed(2)),
-          f1Score: parseFloat((finalAccuracy * (0.91 + Math.random() * 0.1)).toFixed(2)),
-        };
-
-        setGenerationResult(enhancedResult);
-        setIsComplete(true);
-        setIsTraining(false);
-
-        toast.success('Model Training Complete!', {
-          description: `Your model "${enhancedResult.modelName}" achieved ${enhancedResult.accuracy}% accuracy.`,
-        });
-      } catch (error) {
-        toast.error('Training Failed', {
-          description: 'Failed to train model. Please check your parameters and try again.',
-        });
-        setIsTraining(false);
+        })();
       }
-    }, trainingTimeInSeconds * 1000);
+    }, 1000);
   };
 
   const handleStopTraining = () => {
-    if (trainingTimeoutRef.current) {
-      clearTimeout(trainingTimeoutRef.current);
+    if (trainingIntervalRef.current) {
+      clearInterval(trainingIntervalRef.current);
     }
     setIsTraining(false);
+    setIsComplete(false);
+    setGenerationResult(null);
     toast.warning('Training Stopped', {
       description: 'The training process has been halted by the user.',
     });
@@ -131,6 +137,8 @@ function App() {
                 estimatedTrainingTime={estimatedTrainingTime}
                 onStartTraining={handleStartTraining}
                 onStopTraining={handleStopTraining}
+                isFileUploaded={isFileUploaded}
+                onFileUploadSuccess={() => setIsFileUploaded(true)}
               />
             }
           />

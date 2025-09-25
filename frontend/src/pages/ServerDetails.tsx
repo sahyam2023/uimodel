@@ -45,9 +45,16 @@ const MetricChart = ({ data, color }) => (
   </ResponsiveContainer>
 );
 
+const getTempColor = (temp: number) => {
+  if (temp > 90) return 'text-red-500';
+  if (temp > 70) return 'text-amber-400';
+  return 'text-green-500';
+};
+
 const ServerCard = ({ serverId, isActive }) => {
   const [isFetching, setIsFetching] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [ipAddress, setIpAddress] = useState('');
   const [metrics, setMetrics] = useState({
     cpuTemp: 0,
     gpuTemp: 0,
@@ -59,14 +66,29 @@ const ServerCard = ({ serverId, isActive }) => {
   const [gpuHistory, setGpuHistory] = useState([]);
 
   useEffect(() => {
+    const lastOctet = Math.floor(Math.random() * (50 - 10 + 1)) + 10;
+    setIpAddress(`192.168.3.${lastOctet}`);
+  }, []);
+
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     if (showDetails) {
       interval = setInterval(() => {
         setCpuHistory(prev => [...prev.slice(-20), { value: Math.floor(Math.random() * 100) }]);
         setGpuHistory(prev => [...prev.slice(-20), { value: Math.floor(Math.random() * 100) }]);
+
+        let newCpuTemp, newGpuTemp;
+        if (serverId === 1) { // Hot server
+          newCpuTemp = Math.floor(Math.random() * (99 - 91 + 1)) + 91;
+          newGpuTemp = Math.floor(Math.random() * (99 - 91 + 1)) + 91;
+        } else { // Normal servers
+          newCpuTemp = Math.floor(Math.random() * (89 - 60 + 1)) + 60;
+          newGpuTemp = Math.floor(Math.random() * (89 - 60 + 1)) + 60;
+        }
+
         setMetrics({
-          cpuTemp: Math.floor(Math.random() * (90 - 40 + 1)) + 40,
-          gpuTemp: Math.floor(Math.random() * (95 - 45 + 1)) + 45,
+          cpuTemp: newCpuTemp,
+          gpuTemp: newGpuTemp,
           memoryUsage: Math.floor(Math.random() * 100),
           diskUsage: Math.floor(Math.random() * 100),
           processes: Array.from({ length: 3 }, generateFakeProcess),
@@ -74,7 +96,7 @@ const ServerCard = ({ serverId, isActive }) => {
       }, 1500);
     }
     return () => clearInterval(interval);
-  }, [showDetails]);
+  }, [showDetails, serverId]);
 
   const handleClick = () => {
     if (showDetails) {
@@ -100,6 +122,7 @@ const ServerCard = ({ serverId, isActive }) => {
             <ServerIcon status={status} />
             <div>
               <CardTitle className="text-white">Server {serverId}</CardTitle>
+              <p className="text-xs text-slate-500">{ipAddress}</p>
               <p className={cn("text-sm",
                 status === 'online' && 'text-green-400',
                 status === 'offline' && 'text-slate-500',
@@ -125,8 +148,18 @@ const ServerCard = ({ serverId, isActive }) => {
               <div className="flex justify-between items-center text-slate-400"><span><Zap className="mr-2 h-4 w-4 inline"/>GPU</span> <span>{gpuHistory.at(-1)?.value || 0}%</span></div>
               <MetricChart data={gpuHistory} color="#a78bfa" />
             </div>
-            <div className="flex items-center text-slate-400"><Thermometer className="mr-2 h-4 w-4" /> CPU Temp: {metrics.cpuTemp}°C</div>
-            <div className="flex items-center text-slate-400"><Thermometer className="mr-2 h-4 w-4" /> GPU Temp: {metrics.gpuTemp}°C</div>
+            <div className="flex items-center text-slate-400">
+              <Thermometer className="mr-2 h-4 w-4" /> CPU Temp:
+              <span className={cn("font-semibold ml-1", getTempColor(metrics.cpuTemp))}>
+                {metrics.cpuTemp}°C
+              </span>
+            </div>
+            <div className="flex items-center text-slate-400">
+              <Thermometer className="mr-2 h-4 w-4" /> GPU Temp:
+              <span className={cn("font-semibold ml-1", getTempColor(metrics.gpuTemp))}>
+                {metrics.gpuTemp}°C
+              </span>
+            </div>
             <div className="flex items-center text-slate-400"><MemoryStick className="mr-2 h-4 w-4" /> Memory: {metrics.memoryUsage}%</div>
             <div className="flex items-center text-slate-400"><HardDrive className="mr-2 h-4 w-4" /> Disk: {metrics.diskUsage}%</div>
           </div>

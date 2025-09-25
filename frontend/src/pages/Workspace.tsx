@@ -14,6 +14,8 @@ interface WorkspaceProps {
   estimatedTrainingTime: number;
   onStartTraining: (params: ModelParameters) => void;
   onStopTraining: () => void;
+  isFileUploaded: boolean;
+  onFileUploadSuccess: () => void;
 }
 
 export function Workspace({
@@ -23,9 +25,10 @@ export function Workspace({
   estimatedTrainingTime,
   onStartTraining,
   onStopTraining,
+  isFileUploaded,
+  onFileUploadSuccess,
 }: WorkspaceProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isFileUploaded, setIsFileUploaded] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
   
   const [modelParameters, setModelParameters] = useState<ModelParameters>({
@@ -59,10 +62,6 @@ export function Workspace({
     }
   }, [isTraining, isComplete, isFileUploaded]);
 
-  const handleFileUploadSuccess = () => {
-    setIsFileUploaded(true);
-  };
-
   const handleStartTrainingClick = () => {
     onStartTraining(modelParameters);
   };
@@ -86,7 +85,7 @@ export function Workspace({
         showMonitoring ? 'lg:grid-cols-2 lg:pr-[22rem]' : 'lg:grid-cols-2'
       }`}>
         <div className="space-y-6">
-          <DataIngestCard onUploadSuccess={handleFileUploadSuccess} />
+          <DataIngestCard onUploadSuccess={onFileUploadSuccess} />
           <ConfigurationCard
             parameters={modelParameters}
             onParametersChange={setModelParameters}

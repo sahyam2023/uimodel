@@ -120,7 +120,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
               type="file"
               accept=".csv,.json,.xml"
               onChange={handleFileSelect}
-              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-4 file:py-2 file:mr-4 file:rounded-md"
+              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-3 file:py-1.5 file:text-sm file:mr-4 file:rounded-md"
             />
           </div>
 
