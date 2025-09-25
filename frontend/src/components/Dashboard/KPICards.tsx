@@ -14,6 +14,7 @@ export function KPICards({ data }: KPICardsProps) {
       icon: Activity,
       color: 'text-green-400',
       bgColor: 'bg-green-400/10',
+      description: null,
     },
     {
       title: 'Total Datasets',
@@ -21,6 +22,7 @@ export function KPICards({ data }: KPICardsProps) {
       icon: Database,
       color: 'text-blue-400',
       bgColor: 'bg-blue-400/10',
+      description: '+12% from last month',
     },
     {
       title: 'Server Load',
@@ -28,13 +30,15 @@ export function KPICards({ data }: KPICardsProps) {
       icon: Cpu,
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-400/10',
+      description: null,
     },
     {
       title: 'Server Status',
-      value: `${data.serversOnline} / ${data.serversTotal}`,
+      value: 'Connected',
       icon: Server,
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-400/10',
+      color: 'text-green-400',
+      bgColor: 'bg-green-400/10',
+      description: `${data.serversOnline} / ${data.serversTotal} online`,
     },
   ];
 
@@ -53,7 +57,7 @@ export function KPICards({ data }: KPICardsProps) {
           <CardContent>
             <div className="text-2xl font-bold text-white">{kpi.value}</div>
             <p className="text-xs text-slate-400 mt-1">
-              +12% from last month
+              {kpi.description || '\u00A0'}
             </p>
           </CardContent>
         </Card>

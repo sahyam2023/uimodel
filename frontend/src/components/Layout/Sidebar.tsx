@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
-  Zap
+  Zap,
+  Server
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Workspace', href: '/workspace', icon: Wrench },
   { name: 'Model Registry', href: '/registry', icon: Archive },
   { name: 'Data Sources', href: '/data', icon: Database },
+  { name: 'Server Details', href: '/servers', icon: Server },
 ];
 
 export function Sidebar() {

@@ -1,17 +1,35 @@
+import { useState, useEffect } from 'react';
 import { KPICards } from '@/components/Dashboard/KPICards';
 import { ComputeUsageChart } from '@/components/Dashboard/ComputeUsageChart';
 import { ModelPerformanceTable } from '@/components/Dashboard/ModelPerformanceTable';
 import { KPIData } from '@/types';
 
-const kpiData: KPIData = {
+const initialKpiData: KPIData = {
   activeModels: 12,
   totalDatasets: 87,
   serverLoad: 76,
-  serversOnline: 18,
-  serversTotal: 20,
+  serversOnline: 6,
+  serversTotal: 8,
 };
 
 export function Dashboard() {
+  const [kpiData, setKpiData] = useState<KPIData>(initialKpiData);
+  const [isUpdating, setIsUpdating] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isUpdating) {
+        setKpiData((prevData) => ({
+          ...prevData,
+          serverLoad: Math.floor(Math.random() * (96 - 70 + 1)) + 70,
+          activeModels: prevData.activeModels === 12 ? 'Running...' : 12,
+        }));
+      }
+    }, 2000); // Update every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [isUpdating]);
+
   return (
     <div className="space-y-8">
       <div>

@@ -7,6 +7,7 @@ import { ProjectDetail } from '@/pages/ProjectDetail';
 import { Workspace } from '@/pages/Workspace';
 import { Registry } from '@/pages/Registry';
 import { DataSources } from '@/pages/DataSources';
+import ServerDetails from '@/pages/ServerDetails';
 import { Toaster } from '@/components/ui/sonner';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/registry" element={<Registry />} />
           <Route path="/data" element={<DataSources />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
+          <Route path="/servers" element={<ServerDetails />} />
         </Routes>
         <ChatBot />
         <Toaster />
