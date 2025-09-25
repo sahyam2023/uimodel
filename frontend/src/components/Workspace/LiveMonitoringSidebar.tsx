@@ -1,124 +1,241 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, TrendingUp, BarChart2 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity, TrendingUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface LiveMonitoringSidebarProps {
   isVisible: boolean;
   isTraining: boolean;
-  estimatedTime: number; // in minutes
+  estimatedTime: number; // in seconds
 }
 
-const logTemplates = [
-  "[INFO] Initializing training environment...",
-  "[INFO] Loading dataset from /data/source/...",
-  "[INFO] Performing data validation...",
-  "[DEBUG] Found 2,456 columns in dataset.",
-  "[DEBUG] Memory usage: 256.34 MB",
-  "[INFO] Starting data preprocessing...",
-  "[INFO] Applying StandardScaler to feature set.",
-  "[INFO] Applying OneHotEncoder to categorical variables.",
-  "[DEBUG] Feature 'city_id' encoded into 12 categories.",
-  "[WARN] Missing 2% of values in 'avg_temp' column. Imputing with mean.",
-  "[INFO] Preprocessing complete. Shape: (150000, 2478)",
-  "[INFO] Building model architecture: ResNet50...",
-  "[DEBUG] Layer 'conv1' added.",
-  "[DEBUG] Layer 'bn1' added with momentum 0.99.",
-  "[DEBUG] Layer 'relu' added.",
-  "[DEBUG] Layer 'maxpool' added.",
-  "[INFO] Compiling model with Adam optimizer, learning rate: 0.001",
-  "[INFO] Starting training for 100 epochs...",
-  () => `[METRIC] Epoch 1/100 - loss: 1.2345, accuracy: 0.5678, val_loss: 1.1000, val_accuracy: 0.6123`,
-  () => `[DEBUG] Batch 128/1172 - loss: ${Math.random().toFixed(4)}`,
-  () => `[DEBUG] Batch 256/1172 - loss: ${Math.random().toFixed(4)}`,
-  "[INFO] Checkpoint saved to /models/checkpoints/epoch_1.h5",
-  () => `[METRIC] Epoch 2/100 - loss: 0.9876, accuracy: 0.6543, val_loss: 1.0500, val_accuracy: 0.6345`,
-  () => `[DEBUG] Learning rate scheduler updated learning rate to 0.0009.`,
-  () => `[DEBUG] Batch 512/1172 - loss: ${Math.random().toFixed(4)}`,
-  () => `[METRIC] Epoch 10/100 - loss: 0.4567, accuracy: 0.8123, val_loss: 0.5200, val_accuracy: 0.7999`,
-  "[WARN] High gradient norm detected in layer 'fc2': 25.67",
-  "[INFO] GPU Memory Usage: 8.7/11.2 GB",
-  "[DEBUG] Data augmentation applied: random flip, rotation.",
-  () => `[METRIC] Epoch 25/100 - loss: 0.2134, accuracy: 0.9123, val_loss: 0.2500, val_accuracy: 0.9011`,
-  "[INFO] Saving model summary to /logs/model_summary.txt",
-  "[DEBUG] TensorFLow profiler enabled for next 5 steps.",
-  () => `[METRIC] Epoch 50/100 - loss: 0.1023, accuracy: 0.9654, val_loss: 0.1234, val_accuracy: 0.9587`,
-  "[INFO] Early stopping patience: 3/5.",
-  "[DEBUG] Cache hit for data batch 789.",
-  () => `[METRIC] Epoch 75/100 - loss: 0.0512, accuracy: 0.9876, val_loss: 0.0600, val_accuracy: 0.9854`,
-  "[WARN] Validation accuracy has not improved in 3 epochs.",
-  "[INFO] Freezing layers for fine-tuning: conv1, conv2",
-  "[DEBUG] Recompiling model with new optimizer settings.",
-  () => `[METRIC] Epoch 99/100 - loss: 0.0234, accuracy: 0.9912, val_loss: 0.0300, val_accuracy: 0.9901`,
-  "[SUCCESS] Model training completed!",
-  "[INFO] Evaluating model performance on test set...",
-  "[METRIC] Test Accuracy: 0.9905",
-  "[INFO] Saving final model to /models/production/final_model.h5",
-  "[INFO] Cleaning up training artifacts...",
-  "[SYSTEM] Process finished with exit code 0.",
-  "[DEBUG] Analyzing feature importance...",
-  "[DEBUG] Feature 'traffic_density' has high correlation.",
-  "[INFO] Generating ROC curve...",
-  "[METRIC] AUC: 0.997",
-  "[SYSTEM] Shutting down training container."
-];
-
-const generateLogMessage = () => {
-  const template = logTemplates[Math.floor(Math.random() * logTemplates.length)];
-  return typeof template === 'function' ? template() : template;
+// A comprehensive and structured collection of realistic training logs
+const realisticLogs = {
+  initialization: [
+    "[INFO] Training environment validated. Python: 3.9.12, TensorFlow: 2.10.0, CUDA: 11.2",
+    "[INFO] Compute resources allocated: 1x NVIDIA V100 GPU, 16x vCPU, 128GB RAM.",
+    "[INFO] Connecting to data source 'production_events_stream'...",
+    "[INFO] Successfully connected to data source. Streaming data...",
+    "[INFO] Reading dataset from remote: gs://acme-corp-datalake/processed/q1-2024-data.arrow",
+    "[INFO] Dataset metadata loaded. Columns: 512, Rows: 2,750,000, Size: 10.2 GB.",
+    "[INFO] Performing initial data integrity and schema validation...",
+    "[SUCCESS] Data integrity check passed. No corrupt records found. Schema is valid.",
+    "[DEBUG] Setting random seeds for reproducibility: NumPy=42, TensorFlow=42.",
+    "[DEBUG] Cleared backend session state.",
+  ],
+  preprocessing: [
+    "[INFO] Launching data preprocessing and feature engineering pipeline.",
+    "[INFO] Applying StandardScaler to 256 numerical features.",
+    "[INFO] Applying Tokenizer and Embedding layer to 16 text features.",
+    "[DEBUG] Vocabulary size for 'product_description': 50,000 tokens.",
+    "[WARN] Missing 3.8% of values in 'user_rating' column. Imputing with median value 4.0.",
+    "[WARN] Outliers detected in 'session_duration'. Applying log transformation.",
+    "[INFO] Performing feature engineering: creating cyclical features for 'hour_of_day'.",
+    "[DEBUG] Generated 28 new features from geolocation data.",
+    "[INFO] Preprocessing complete. Final feature shape: (2,750,000, 890).",
+    "[INFO] Caching preprocessed data to disk for faster subsequent runs.",
+  ],
+  modelBuilding: [
+    "[INFO] Building model architecture: Hybrid GRU-Transformer Network...",
+    "[DEBUG] Added Bidirectional GRU layer with 256 units.",
+    "[DEBUG] Added Multi-Head Attention layer with num_heads=16, key_dim=64.",
+    "[DEBUG] Added Feed-Forward Network with SwiGLU activation.",
+    "[DEBUG] LayerNormalization and Dropout (rate=0.15) added throughout.",
+    "[INFO] Model contains 8 transformer blocks and 2 GRU layers.",
+    "[INFO] Compiling model with AdamW optimizer, learning rate: 5e-5, weight_decay: 0.02.",
+    "[SUCCESS] Model compiled successfully. Total trainable parameters: 112,345,678.",
+  ],
+  system: [
+    "[INFO] GPU Memory Usage: 28.5/32.0 GB",
+    "[INFO] GPU Utilization (avg over 10s): 96%",
+    "[DEBUG] Data augmentation applied: random noise, time-series shifting.",
+    "[DEBUG] Learning rate scheduler: Cosine decay with warmup (10% of steps).",
+    "[INFO] Checkpoint saved to /models/checkpoints/epoch_{epoch}.ckpt",
+    "[DEBUG] TensorBoard profiler running for next 100 steps.",
+    "[DEBUG] Cache hit for data batch {batch_num}. IOPS: 35k.",
+    "[INFO] CPU-to-GPU data transfer pipeline is healthy. Bandwidth: 12.5 GB/s.",
+  ],
+  warning: [
+    "[WARN] High gradient norm detected in 'attention_layer_5': 42.8. Applying gradient clipping.",
+    "[WARN] Validation loss has plateaued for 2 epochs. Early stopping patience: 2/5.",
+    "[WARN] Input pipeline is taking 1.2x longer than model forward pass. Potential IO bottleneck.",
+    "[WARN] Numerical instability detected in final layer. Recasting to float32.",
+  ],
+  special: [
+    "[CRITICAL] System instability detected! Freezing layers and reducing learning rate to recover...",
+    "[INFO] Fine-tuning phase initiated. Unfreezing top 3 transformer blocks.",
+    "[INFO] Recompiling model with a lower learning rate (1e-6) for fine-tuning.",
+    "[INFO] Switching to Stochastic Weight Averaging (SWA) for final epochs.",
+  ],
+  finalization: [
+    "[SUCCESS] Model training completed successfully!",
+    "[INFO] Evaluating final model performance on the held-out test set (250k samples)...",
+    "[METRIC] Final Test Accuracy: {final_accuracy}%",
+    "[INFO] Generating feature importance report using SHAP on 1000 test samples...",
+    "[INFO] Saving final model artifact to /models/production/prod_model_v2.3.onnx",
+    "[INFO] Cleaning up training artifacts and releasing all compute resources...",
+    "[INFO] Generating ROC curve, precision-recall curve, and confusion matrix plots...",
+    "[METRIC] Final AUC: {final_auc}",
+    "[SYSTEM] Training container is shutting down.",
+    "[SUCCESS] Process finished with exit code 0.",
+  ]
 };
 
-const genericFeatures = Array.from({ length: 5 }, (_, i) => `Feature ${i + 1}`);
+const getRandomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
 
 export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: LiveMonitoringSidebarProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [accuracyData, setAccuracyData] = useState<Array<{ step: number; accuracy: number }>>([]);
-  const [featureImportance, setFeatureImportance] = useState<Array<{ feature: string; importance: number }>>([]);
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const trainingStateRef = useRef({
+    intervalId: null as NodeJS.Timeout | null,
+    currentStep: 0,
+    totalSteps: 0,
+    stage: 'idle',
+    epoch: 0,
+    totalEpochs: 0,
+    targetAccuracy: 0,
+  });
+
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev.slice(-199), `[${new Date().toLocaleTimeString()}] ${message}`]);
+  };
+
+  const updateAccuracy = () => {
+    const { currentStep, totalSteps, targetAccuracy } = trainingStateRef.current;
+    const progress = currentStep / totalSteps;
+
+    // Sigmoid-like curve for realistic accuracy growth
+    const steepness = 5;
+    const midpoint = 0.5;
+    const currentAccuracy = targetAccuracy * (1 / (1 + Math.exp(-steepness * (progress - midpoint))));
+
+    // Add some noise
+    const noise = (Math.random() - 0.5) * 0.03 * (1 - progress);
+    const finalAccuracy = Math.max(0, Math.min(0.995, currentAccuracy + noise));
+
+    setAccuracyData(prev => [...prev.slice(-99), { step: trainingStateRef.current.epoch, accuracy: finalAccuracy }]);
+  };
+
+  const runTrainingSimulation = () => {
+    const state = trainingStateRef.current;
+    state.currentStep++;
+
+    switch (state.stage) {
+      case 'init':
+        if (state.currentStep > realisticLogs.initialization.length) {
+          state.stage = 'preprocessing';
+          state.currentStep = 1;
+        } else {
+          addLog(realisticLogs.initialization[state.currentStep - 1]);
+        }
+        break;
+      case 'preprocessing':
+        if (state.currentStep > realisticLogs.preprocessing.length) {
+          state.stage = 'building';
+          state.currentStep = 1;
+        } else {
+          addLog(realisticLogs.preprocessing[state.currentStep - 1]);
+        }
+        break;
+      case 'building':
+        if (state.currentStep > realisticLogs.modelBuilding.length) {
+          state.stage = 'training';
+          state.currentStep = 1;
+          state.epoch = 1;
+        } else {
+          addLog(realisticLogs.modelBuilding[state.currentStep - 1]);
+        }
+        break;
+      case 'training':
+        const stepsPerEpoch = Math.floor(state.totalSteps / state.totalEpochs);
+        if (state.currentStep % stepsPerEpoch === 0) {
+          updateAccuracy();
+          const [loss, acc, val_loss, val_acc] = [Math.random(), accuracyData.at(-1)?.accuracy || 0, Math.random(), accuracyData.at(-1)?.accuracy || 0];
+          const epochLog = `[METRIC] Epoch ${state.epoch}/${state.totalEpochs} - loss: ${loss.toFixed(4)}, acc: ${acc.toFixed(4)}, val_loss: ${val_loss.toFixed(4)}, val_acc: ${val_acc.toFixed(4)}`;
+          addLog(epochLog);
+
+          // Add a random system or warning log
+          if (Math.random() < 0.3) {
+            addLog(getRandomItem([...realisticLogs.system, ...realisticLogs.warning]));
+          }
+
+          // Special logs at 50% and 75%
+          if (state.epoch === Math.floor(state.totalEpochs * 0.5) || state.epoch === Math.floor(state.totalEpochs * 0.75)) {
+            addLog(getRandomItem(realisticLogs.special));
+          }
+
+          state.epoch++;
+        }
+        if (state.epoch > state.totalEpochs) {
+          state.stage = 'finalizing';
+          state.currentStep = 1;
+          updateAccuracy(); // Final accuracy update
+        }
+        break;
+      case 'finalizing':
+        if (state.currentStep > realisticLogs.finalization.length) {
+          state.stage = 'done';
+          if (state.intervalId) clearInterval(state.intervalId);
+        } else {
+          let msg = realisticLogs.finalization[state.currentStep - 1];
+          if (msg.includes('{final_accuracy}')) {
+            msg = msg.replace('{final_accuracy}', (state.targetAccuracy * 100).toFixed(2));
+          }
+          if (msg.includes('{final_auc}')) {
+            msg = msg.replace('{final_auc}', (state.targetAccuracy + Math.random() * 0.05).toFixed(4));
+          }
+          addLog(msg);
+        }
+        break;
+    }
+  };
 
   useEffect(() => {
     if (isTraining) {
       setLogs([]);
       setAccuracyData([]);
-      setFeatureImportance(genericFeatures.map(f => ({ feature: f, importance: Math.random() * 0.2 })));
 
-      const totalSteps = estimatedTime * 60 * 2; // ~2 logs per second
-      const intervalDuration = (estimatedTime * 60 * 1000) / totalSteps;
-      let currentStep = 0;
+      const trainingTimeMinutes = estimatedTime / 60;
+      let targetAccuracy;
+      if (trainingTimeMinutes <= 10) {
+        targetAccuracy = 0.75 + Math.random() * 0.1; // 75-85%
+      } else if (trainingTimeMinutes <= 30) {
+        targetAccuracy = 0.80 + Math.random() * 0.1; // 80-90%
+      } else {
+        targetAccuracy = 0.85 + Math.random() * 0.1; // 85-95%
+      }
 
-      const trainingInterval = setInterval(() => {
-        if (currentStep >= totalSteps) {
-          clearInterval(trainingInterval);
-          setLogs(prev => [...prev.slice(-99), '[SUCCESS] Model training completed!']);
-          return;
-        }
+      const totalEpochs = Math.max(10, Math.floor(trainingTimeMinutes * 4)); // ~4 epochs per minute
+      const totalSteps = totalEpochs * 10; // 10 simulation steps per epoch
+      const intervalDuration = (estimatedTime * 1000) / totalSteps;
 
-        currentStep++;
+      trainingStateRef.current = {
+        intervalId: null,
+        currentStep: 0,
+        totalSteps,
+        stage: 'init',
+        epoch: 0,
+        totalEpochs,
+        targetAccuracy
+      };
 
-        setLogs(prev => [...prev.slice(-99), `[${new Date().toLocaleTimeString()}] ${generateLogMessage()}`]);
+      const intervalId = setInterval(runTrainingSimulation, intervalDuration);
+      trainingStateRef.current.intervalId = intervalId;
 
-        // Update Accuracy Chart
-        if (currentStep % 10 === 0) { // Update chart less frequently
-          const lastAccuracy = accuracyData.length > 0 ? accuracyData[accuracyData.length - 1].accuracy : 0.3;
-          const newAccuracy = Math.min(0.99, lastAccuracy + (Math.random() * 0.02) - 0.005);
-          setAccuracyData(prev => [...prev.slice(-50), { step: currentStep, accuracy: newAccuracy }]);
-        }
-
-        // Update Feature Importance Chart
-        if (currentStep % 25 === 0) { // Update chart less frequently
-          setFeatureImportance(prev =>
-            prev.map(f => ({
-              ...f,
-              importance: Math.max(0, Math.min(1, f.importance + (Math.random() - 0.48) * 0.05)),
-            }))
-          );
-        }
-
-      }, intervalDuration);
-
-      return () => clearInterval(trainingInterval);
+    } else {
+      if (trainingStateRef.current.intervalId) {
+        clearInterval(trainingStateRef.current.intervalId);
+        trainingStateRef.current.intervalId = null;
+      }
     }
+
+    return () => {
+      if (trainingStateRef.current.intervalId) {
+        clearInterval(trainingStateRef.current.intervalId);
+      }
+    };
   }, [isTraining, estimatedTime]);
 
   useEffect(() => {
@@ -130,13 +247,13 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed right-0 top-0 h-full w-96 bg-slate-900 border-l border-slate-800 shadow-xl z-30 transform transition-transform duration-300 ease-in-out"
+    <div className="fixed right-0 top-0 h-full w-[26rem] bg-slate-900 border-l border-slate-800 shadow-xl z-30 transform transition-transform duration-300 ease-in-out"
          style={{ transform: isVisible ? 'translateX(0)' : 'translateX(100%)' }}>
       <ScrollArea className="h-full p-4">
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
             <Activity className="h-5 w-5 text-indigo-400" />
-            <h3 className="text-lg font-semibold text-white">Live Monitoring</h3>
+            <h3 className="text-lg font-semibold text-white">Live Training Monitor</h3>
           </div>
 
           <Card className="bg-slate-800/50 border-slate-700">
@@ -144,7 +261,7 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
               <CardTitle className="text-sm font-medium text-slate-300">Training Logs</CardTitle>
             </CardHeader>
             <CardContent>
-              <div ref={logContainerRef} className="bg-black rounded-md p-3 h-56 overflow-y-auto font-mono text-xs scroll-smooth">
+              <div ref={logContainerRef} className="bg-black rounded-md p-3 h-80 overflow-y-auto font-mono text-xs scroll-smooth">
                 {logs.map((log, index) => (
                   <div
                     key={index}
@@ -152,7 +269,7 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
                       log.includes('[SUCCESS]') ? 'text-green-400' :
                       log.includes('[METRIC]') ? 'text-cyan-400' :
                       log.includes('[WARN]') ? 'text-yellow-400' :
-                      log.includes('[ERROR]') ? 'text-red-400' :
+                      log.includes('[CRITICAL]') ? 'text-red-500 animate-pulse' :
                       log.includes('[DEBUG]') ? 'text-slate-500' :
                       'text-slate-300'
                     }`}
@@ -169,48 +286,23 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
                   <TrendingUp className="h-4 w-4" />
-                  <span>Training Accuracy</span>
+                  <span>Validation Accuracy</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={150}>
                   <LineChart data={accuracyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="step" stroke="#64748b" fontSize={10} />
-                    <YAxis stroke="#64748b" fontSize={10} domain={[0.4, 1.0]} />
+                    <XAxis dataKey="step" stroke="#64748b" fontSize={10} name="Epoch" />
+                    <YAxis stroke="#64748b" fontSize={10} domain={[0, 1.0]} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
                       labelClassName="font-bold"
                       itemStyle={{ color: '#818cf8' }}
+                      formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
                     />
                     <Line type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={2} dot={false} />
                   </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-
-          {featureImportance.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
-                  <BarChart2 className="h-4 w-4" />
-                  <span>Feature Importance</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={featureImportance} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis type="number" stroke="#64748b" fontSize={10} domain={[0, 1]} />
-                    <YAxis dataKey="feature" type="category" stroke="#64748b" fontSize={10} width={60} tick={{ fill: '#94a3b8' }} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
-                      labelClassName="font-bold"
-                      itemStyle={{ color: '#6366f1' }}
-                    />
-                    <Bar dataKey="importance" fill="#6366f1" />
-                  </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>

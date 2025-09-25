@@ -28,22 +28,53 @@ function App() {
     setIsComplete(false);
     setGenerationResult(null);
 
-    const trainingTimeInSeconds = Math.floor(Math.random() * (300 - 120 + 1)) + 120; // 2-5 minutes
+    const trainingTimeInSeconds = modelParameters.trainingTime * 60;
     setEstimatedTrainingTime(trainingTimeInSeconds);
 
     toast.info('Training Started', {
-      description: `Model training initiated. Estimated completion in ~${Math.round(trainingTimeInSeconds / 60)} minutes.`,
+      description: `Model training initiated. Estimated completion in ~${modelParameters.trainingTime} minutes.`,
     });
 
     trainingTimeoutRef.current = setTimeout(async () => {
       try {
-        const result = await apiService.generateModel(modelParameters);
+        // 1. Final Accuracy Calculation
+        const { trainingTime } = modelParameters;
+        let finalAccuracy: number;
+        if (trainingTime <= 10) {
+          finalAccuracy = 75 + Math.random() * 10; // 75-85%
+        } else if (trainingTime <= 30) {
+          finalAccuracy = 80 + Math.random() * 10; // 80-90%
+        } else {
+          finalAccuracy = 85 + Math.random() * 10; // 85-95%
+        }
+
+        // 2. Model Selection Logic
+        const getModelNameByDomain = (domain: string): string => {
+          switch (domain) {
+            case 'City':
+              return 'City.onnx';
+            case 'Oil and Gas':
+              return 'OilandGas.pkl';
+            case 'Traffic':
+              return 'Traffic.onnx';
+            case 'Airports':
+              return 'Airports.onnx';
+            default:
+              return 'GenericModel.pkl';
+          }
+        };
+
+        const modelName = getModelNameByDomain(modelParameters.domain);
+        console.log(`[Model Selection] Domain: '${modelParameters.domain}', Selected Model: '${modelName}'`);
+        const result = await apiService.generateModel({ ...modelParameters, modelName });
+
         const enhancedResult: GenerationResult = {
           ...result,
-          accuracy: 92.4,
-          precision: 89.7,
-          recall: 94.1,
-          f1Score: 91.8,
+          modelName, // Override with the correct model name
+          accuracy: parseFloat(finalAccuracy.toFixed(2)),
+          precision: parseFloat((finalAccuracy * (0.9 + Math.random() * 0.1)).toFixed(2)),
+          recall: parseFloat((finalAccuracy * (0.92 + Math.random() * 0.1)).toFixed(2)),
+          f1Score: parseFloat((finalAccuracy * (0.91 + Math.random() * 0.1)).toFixed(2)),
         };
 
         setGenerationResult(enhancedResult);
@@ -51,7 +82,7 @@ function App() {
         setIsTraining(false);
 
         toast.success('Model Training Complete!', {
-          description: `Your model "${result.modelName}" achieved 92.4% accuracy.`,
+          description: `Your model "${enhancedResult.modelName}" achieved ${enhancedResult.accuracy}% accuracy.`,
         });
       } catch (error) {
         toast.error('Training Failed', {
