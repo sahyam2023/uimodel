@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/Layout/AppLayout';
 import { ChatBot } from '@/components/AIAssistant/ChatBot';
 import { Dashboard } from '@/pages/Dashboard';
 import { Projects } from '@/pages/Projects';
+import { ProjectDetail } from '@/pages/ProjectDetail';
 import { Workspace } from '@/pages/Workspace';
 import { Registry } from '@/pages/Registry';
 import { DataSources } from '@/pages/DataSources';
@@ -19,14 +20,7 @@ function App() {
           <Route path="/workspace" element={<Workspace />} />
           <Route path="/registry" element={<Registry />} />
           <Route path="/data" element={<DataSources />} />
-          <Route path="/projects/:id" element={
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <h2 className="text-xl font-semibold text-white mb-2">Project Details</h2>
-                <p className="text-slate-400">This is a demo page. Project details would be displayed here.</p>
-              </div>
-            </div>
-          } />
+          <Route path="/projects/:id" element={<ProjectDetail />} />
         </Routes>
         <ChatBot />
         <Toaster />

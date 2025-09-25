@@ -1,16 +1,14 @@
 
 import os
 import time
+import uuid
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-
-
 app = Flask(__name__)
-
-
 CORS(app)
 
+# --- 1. SETUP & IN-MEMORY DATABASES ---
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -19,8 +17,38 @@ MODELS_FOLDER = os.path.join(BASE_DIR, 'predefined_models')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(MODELS_FOLDER, exist_ok=True)
 
+# In-memory database for storing project details
+projects_db = {}
 
 # --- 2. API ENDPOINTS ---
+
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """Returns a list of all projects."""
+    return jsonify(list(projects_db.values()))
+
+@app.route('/api/projects', methods=['POST'])
+def create_project():
+    """Creates a new project and stores it."""
+    data = request.json
+    project_id = str(uuid.uuid4())
+    new_project = {
+        'id': project_id,
+        'name': data.get('name'),
+        'description': data.get('description'),
+        'owner': data.get('owner'),
+        'createdAt': time.time()
+    }
+    projects_db[project_id] = new_project
+    return jsonify(new_project), 201
+
+@app.route('/api/projects/<project_id>', methods=['GET'])
+def get_project(project_id):
+    """Returns details for a specific project."""
+    project = projects_db.get(project_id)
+    if project:
+        return jsonify(project)
+    return jsonify({'error': 'Project not found'}), 404
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
@@ -48,45 +76,72 @@ def upload_file():
 
     return jsonify({'error': 'File upload failed'}), 500
 
+@app.route('/api/test_connection', methods=['POST'])
+def test_connection():
+    """
+    Simulates testing a data source connection.
+    Waits for 2 seconds and returns a success message.
+    """
+    print(f"Received request to test connection with data: {request.json}")
+    time.sleep(2)
+    return jsonify({'status': 'success', 'message': 'Connection successful!'})
+
+@app.route('/api/models', methods=['GET'])
+def get_models():
+    """
+    Scans the predefined_models directory and returns a list of available models.
+    """
+    models = []
+    for filename in os.listdir(MODELS_FOLDER):
+        if os.path.isfile(os.path.join(MODELS_FOLDER, filename)):
+            file_path = os.path.join(MODELS_FOLDER, filename)
+            models.append({
+                'fileName': filename,
+                'fileSize': os.path.getsize(file_path),
+                'createdAt': os.path.getctime(file_path)
+            })
+    return jsonify(models)
+
+import random
 
 @app.route('/api/generate_model', methods=['POST'])
 def generate_model():
     """
     The core "dummy" endpoint. It simulates model generation.
-    It takes user parameters and returns a predefined model file.
+    It now accepts a user-defined model name and returns a randomly selected model.
     """
     # Get the JSON data sent from the frontend
     params = request.json
+    user_model_name = params.get('modelName', 'Unnamed Model')
     print(f"Received parameters for model generation: {params}")
 
     # --- Simulate Processing Delay ---
-    # This makes the frontend experience feel more realistic.
     print("Simulating model training for 5 seconds...")
     time.sleep(5)
     print("Simulation complete.")
 
-    # --- Dummy Logic to Select a Model ---
-    # Based on the received parameters, we choose which fake model to return.
-    # This logic can be as simple or complex as you need for the demo.
-    analytics_type = params.get('analyticsType', 'default')
-    domain = params.get('domain', 'default')
-    model_filename = 'default_model.pkl' # Fallback model
+    # --- Dynamic Model Selection ---
+    # Randomly pick a model from the predefined_models directory.
+    try:
+        available_models = [f for f in os.listdir(MODELS_FOLDER) if os.path.isfile(os.path.join(MODELS_FOLDER, f))]
+        if not available_models:
+            return jsonify({'error': 'No predefined models found on the server.'}), 500
 
-    if analytics_type == 'Predictive Analytics' and domain == 'Transport':
-        model_filename = 'transport_regression_model.pkl'
-    elif analytics_type == 'Predictive Analytics' and domain == 'Solid Waste':
-        model_filename = 'waste_management_classifier.h5'
-    elif analytics_type == 'Sentiment Analytics':
-        model_filename = 'sentiment_analysis_model.onnx'
+        selected_model_file = random.choice(available_models)
+        print(f"Randomly selected model: {selected_model_file}")
+
+    except Exception as e:
+        print(f"Error selecting model: {e}")
+        return jsonify({'error': 'Could not select a model.'}), 500
 
     # --- Prepare the Response ---
-    # The response gives the frontend everything it needs to show the result.
+    # The response uses the user's name but provides a download link to the actual file.
     return jsonify({
         'message': 'Model generation completed successfully!',
-        'modelName': model_filename,
-        'downloadUrl': f'/api/download_model/{model_filename}',
+        'modelName': user_model_name, # The name the user provided
+        'downloadUrl': f'/api/download_model/{selected_model_file}', # The actual file to download
         'apiEndpoint': '/api/predict',
-        'parametersReceived': params # Echo back the params for confirmation
+        'parametersReceived': params
     }), 200
 
 

@@ -5,9 +5,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Database, Plus, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Settings } from 'lucide-react';
+import { Database, Plus, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Settings, Loader2 } from 'lucide-react';
+import { apiService } from '@/services/api';
+import { toast } from 'sonner';
 
-const dataSources = [
+const initialDataSources = [
   {
     id: 'postgresql',
     name: 'PostgreSQL',
@@ -15,8 +17,8 @@ const dataSources = [
     icon: Database,
     color: 'text-blue-400',
     bgColor: 'bg-blue-400/10',
-    status: 'connected',
-    connections: 3,
+    status: 'disconnected',
+    connections: 0,
   },
   {
     id: 'aws-s3',
@@ -25,8 +27,8 @@ const dataSources = [
     icon: Database,
     color: 'text-orange-400',
     bgColor: 'bg-orange-400/10',
-    status: 'connected',
-    connections: 7,
+    status: 'disconnected',
+    connections: 0,
   },
   {
     id: 'snowflake',
@@ -38,55 +40,54 @@ const dataSources = [
     status: 'disconnected',
     connections: 0,
   },
-  {
-    id: 'kafka',
-    name: 'Apache Kafka',
-    description: 'Stream real-time data from Kafka topics',
-    icon: Database,
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-400/10',
-    status: 'connected',
-    connections: 2,
-  },
-  {
-    id: 'mongodb',
-    name: 'MongoDB',
-    description: 'Connect to MongoDB for document-based data',
-    icon: Database,
-    color: 'text-green-400',
-    bgColor: 'bg-green-400/10',
-    status: 'disconnected',
-    connections: 0,
-  },
-  {
-    id: 'bigquery',
-    name: 'Google BigQuery',
-    description: 'Access Google Cloud BigQuery datasets',
-    icon: Database,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-400/10',
-    status: 'connected',
-    connections: 1,
-  },
 ];
 
 export function DataSources() {
-  const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [dataSources, setDataSources] = useState(initialDataSources);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [connectionDetails, setConnectionDetails] = useState({ host: '', port: '', database: '', username: '', password: '' });
 
-  const handleConnect = (sourceId: string) => {
-    setSelectedSource(sourceId);
+  const handleConnectClick = (sourceId: string) => {
+    setSelectedSourceId(sourceId);
     setIsDialogOpen(true);
   };
 
-  const selectedSourceData = dataSources.find(source => source.id === selectedSource);
+  const handleTestConnection = async () => {
+    if (!selectedSourceId) return;
+
+    setIsTesting(true);
+    try {
+      const response = await apiService.testConnection({ id: selectedSourceId, ...connectionDetails });
+      toast.success(response.message);
+
+      // Update status in the UI
+      setDataSources(currentSources =>
+        currentSources.map(source =>
+          source.id === selectedSourceId ? { ...source, status: 'connected', connections: source.connections + 1 } : source
+        )
+      );
+
+      setIsDialogOpen(false);
+      setConnectionDetails({ host: '', port: '', database: '', username: '', password: '' });
+
+    } catch (error) {
+      toast.error('Connection test failed. Please check your details.');
+      console.error(error);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const selectedSourceData = dataSources.find(source => source.id === selectedSourceId);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Data Sources</h2>
         <p className="text-slate-400">
-          Connect and manage your data sources for machine learning workflows
+          Connect and manage your data sources for machine learning workflows.
         </p>
       </div>
 
@@ -99,11 +100,10 @@ export function DataSources() {
                   <source.icon className={`h-6 w-6 ${source.color}`} />
                 </div>
                 <Badge 
-                  variant={source.status === 'connected' ? 'default' : 'secondary'}
                   className={
                     source.status === 'connected' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-slate-600 hover:bg-slate-700'
+                      ? 'bg-green-600/80 text-white'
+                      : 'bg-slate-600/80 text-slate-300'
                   }
                 >
                   {source.status === 'connected' ? (
@@ -119,132 +119,76 @@ export function DataSources() {
                   )}
                 </Badge>
               </div>
-              <CardTitle className="text-white">{source.name}</CardTitle>
+              <CardTitle className="text-white pt-2">{source.name}</CardTitle>
               <CardDescription className="text-slate-400">
                 {source.description}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
+               <div className="flex items-center justify-between text-sm mb-4">
                   <span className="text-slate-400">Active Connections</span>
                   <span className="text-white font-medium">{source.connections}</span>
                 </div>
-                
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={() => handleConnect(source.id)}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Connect
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => handleConnectClick(source.id)}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Connect
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Connection Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-slate-900 border-slate-800 text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              {selectedSourceData && (
-                <>
-                  <div className={`p-2 rounded-lg ${selectedSourceData.bgColor}`}>
-                    <selectedSourceData.icon className={`h-5 w-5 ${selectedSourceData.color}`} />
-                  </div>
-                  <span>Connect to {selectedSourceData.name}</span>
-                </>
-              )}
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Configure your connection settings for {selectedSourceData?.name}
+            <DialogTitle>Connect to {selectedSourceData?.name}</DialogTitle>
+            <DialogDescription>
+              Enter the connection details for your {selectedSourceData?.name} instance.
             </DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="host" className="text-slate-300">Host</Label>
-              <Input
-                id="host"
-                placeholder="localhost"
-                className="bg-slate-800 border-slate-700 text-white"
-                disabled
-              />
-            </div>
-            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="port" className="text-slate-300">Port</Label>
-                <Input
-                  id="port"
-                  placeholder="5432"
-                  className="bg-slate-800 border-slate-700 text-white"
-                  disabled
-                />
+                <Label htmlFor="host">Host</Label>
+                <Input id="host" placeholder="localhost" className="bg-slate-800 border-slate-700" onChange={e => setConnectionDetails({...connectionDetails, host: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="database" className="text-slate-300">Database</Label>
-                <Input
-                  id="database"
-                  placeholder="smartcity"
-                  className="bg-slate-800 border-slate-700 text-white"
-                  disabled
-                />
+                <Label htmlFor="port">Port</Label>
+                <Input id="port" placeholder="5432" className="bg-slate-800 border-slate-700" onChange={e => setConnectionDetails({...connectionDetails, port: e.target.value})} />
               </div>
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-slate-300">Username</Label>
-              <Input
-                id="username"
-                placeholder="admin"
-                className="bg-slate-800 border-slate-700 text-white"
-                disabled
-              />
+              <Label htmlFor="database">Database</Label>
+              <Input id="database" placeholder="mydatabase" className="bg-slate-800 border-slate-700" onChange={e => setConnectionDetails({...connectionDetails, database: e.target.value})} />
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className="bg-slate-800 border-slate-700 text-white"
-                disabled
-              />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" placeholder="admin" className="bg-slate-800 border-slate-700" onChange={e => setConnectionDetails({...connectionDetails, username: e.target.value})} />
             </div>
-            
-            <div className="p-3 bg-amber-900/20 border border-amber-800 rounded-md">
-              <p className="text-sm text-amber-300">
-                This is a demo interface. Connection functionality is disabled.
-              </p>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" className="bg-slate-800 border-slate-700" onChange={e => setConnectionDetails({...connectionDetails, password: e.target.value})} />
             </div>
           </div>
-          
           <div className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
-            >
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="border-slate-700 hover:bg-slate-800">
               Cancel
             </Button>
-            <Button
-              disabled
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
+            <Button onClick={handleTestConnection} disabled={isTesting} className="bg-indigo-600 hover:bg-indigo-700">
+              {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Test Connection
             </Button>
           </div>

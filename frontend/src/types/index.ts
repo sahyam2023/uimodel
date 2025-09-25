@@ -38,19 +38,24 @@ export interface PredictionResult {
 export interface Project {
   id: string;
   name: string;
-  status: 'Active' | 'Completed' | 'Draft';
+  description: string;
   owner: string;
-  created: string;
-  accuracy?: number;
+  createdAt: number;
+}
+
+export interface DataSource {
+  id: string;
+  host?: string;
+  port?: string;
+  database?: string;
+  username?: string;
+  password?: string;
 }
 
 export interface Model {
-  id: string;
-  name: string;
-  version: string;
-  status: 'Production' | 'Staging' | 'Development';
-  accuracy: number;
-  created: string;
+  fileName: string;
+  fileSize: number;
+  createdAt: number;
 }
 
 export interface KPIData {
