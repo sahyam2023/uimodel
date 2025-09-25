@@ -37,11 +37,12 @@ export interface PredictionResult {
 }
 
 export interface Project {
-  id: string;
+  id:string;
   name: string;
   description: string;
   owner: string;
   createdAt: number;
+  domainType?: string;
 }
 
 export interface DataSource {

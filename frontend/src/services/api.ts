@@ -57,4 +57,8 @@ export const apiService = {
   getDownloadUrl: (filename: string): string => {
     return `${API_BASE_URL}/api/download_model/${filename}`;
   },
+  trainModel: (projectId: string, trainingTime: number): EventSource => {
+    const url = `${API_BASE_URL}/api/train_model_stream?projectId=${encodeURIComponent(projectId)}&trainingTime=${encodeURIComponent(trainingTime)}`;
+    return new EventSource(url);
+  },
 };
