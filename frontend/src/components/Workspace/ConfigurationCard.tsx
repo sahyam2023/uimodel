@@ -95,6 +95,26 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
               </div>
             </div>
 
+            <div className="space-y-4 pt-4">
+              <div className="grid gap-2">
+                <Label htmlFor="training-time" className="text-slate-300">
+                  Training Time: <span className="text-indigo-400 font-bold">{parameters.trainingTime} minutes</span>
+                </Label>
+                <Slider
+                  id="training-time"
+                  min={4}
+                  max={60}
+                  step={1}
+                  value={[parameters.trainingTime]}
+                  onValueChange={(value) => updateParameter('trainingTime', value[0])}
+                  className="[&>span:first-child]:h-1 [&>span:first-child]:bg-slate-700 [&>span:first-child>span]:bg-indigo-400 [&>[role=slider]]:bg-indigo-500 [&>[role=slider]]:border-indigo-300/50"
+                />
+                 <CardDescription className="text-xs text-slate-500 pt-1">
+                  Longer training times can lead to improved model accuracy.
+                </CardDescription>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <Label className="text-slate-300">AI Pre-Processing</Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
