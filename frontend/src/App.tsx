@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { ChatBot } from '@/components/AIAssistant/ChatBot';
@@ -12,96 +12,142 @@ import ServerDetails from '@/pages/ServerDetails';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { apiService } from './services/api';
-import { ModelParameters, GenerationResult } from './types';
+import { ModelParameters, GenerationResult, TrainingLog, ChartData } from './types';
+import { usePersistentState } from './hooks/usePersistentState';
+import { generateLog, generateChartData } from './lib/mock-data';
+
+const initialModelParameters: ModelParameters = {
+  analyticsType: 'Predictive Analytics',
+  domain: 'Transport',
+  modelType: 'Regression',
+  trainingTime: 4,
+  handleMissingData: 'none',
+  dataCleaning: 'none',
+  featureScaling: 'none',
+  geoFencing: true,
+  calculateDistance: false,
+  learningRate: 0.01,
+  epochs: 100,
+  batchSize: 32,
+  validationType: 'train-test',
+  trainTestSplit: 80,
+  kFolds: 5,
+};
 
 function App() {
-  // Global state for training
-  const [isTraining, setIsTraining] = useState(false);
-  const [estimatedTrainingTime, setEstimatedTrainingTime] = useState(0);
-  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
-  const [isComplete, setIsComplete] = useState(false);
+  const [isTraining, setIsTraining] = usePersistentState('isTraining', false);
+  const [isComplete, setIsComplete] = usePersistentState('isComplete', false);
+  const [generationResult, setGenerationResult] = usePersistentState<GenerationResult | null>('generationResult', null);
+  const [isFileUploaded, setIsFileUploaded] = usePersistentState('isFileUploaded', false);
+  const [modelParameters, setModelParameters] = usePersistentState<ModelParameters>('modelParameters', initialModelParameters);
 
-  const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [trainingLogs, setTrainingLogs] = usePersistentState<TrainingLog[]>('trainingLogs', []);
+  const [remainingTime, setRemainingTime] = usePersistentState('remainingTime', 0);
+  const [currentEpoch, setCurrentEpoch] = usePersistentState('currentEpoch', 0);
+  const [accuracyData, setAccuracyData] = usePersistentState<ChartData[]>('accuracyData', []);
 
-  const handleStartTraining = (modelParameters: ModelParameters) => {
-    setIsTraining(true);
-    setIsComplete(false);
-    setGenerationResult(null);
+  const trainingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const trainingTimeInSeconds = modelParameters.trainingTime * 60;
-    setEstimatedTrainingTime(trainingTimeInSeconds);
-
-    toast.info('Training Started', {
-      description: `Model training initiated. Estimated completion in ~${modelParameters.trainingTime} minutes.`,
-    });
-
-    trainingTimeoutRef.current = setTimeout(async () => {
-      try {
-        // 1. Final Accuracy Calculation
-        const { trainingTime } = modelParameters;
-        let finalAccuracy: number;
-        if (trainingTime <= 10) {
-          finalAccuracy = 75 + Math.random() * 10; // 75-85%
-        } else if (trainingTime <= 30) {
-          finalAccuracy = 80 + Math.random() * 10; // 80-90%
-        } else {
-          finalAccuracy = 85 + Math.random() * 10; // 85-95%
+  const finishTraining = useCallback(async (params: ModelParameters) => {
+    setTrainingLogs(prev => [...prev, generateLog('end', params)]);
+    
+    try {
+      const { trainingTime, domain } = params;
+      let finalAccuracy = 75 + Math.random() * 20;
+      
+      const getModelNameByDomain = (d: string): string => {
+        switch (d) {
+            case 'City': return 'City.onnx';
+            case 'Oil and Gas': return 'OilandGas.pkl';
+            case 'Traffic': return 'Traffic.onnx';
+            case 'Airports': return 'Airports.onnx';
+            default: return 'GenericModel.pkl';
         }
+      };
 
-        // 2. Model Selection Logic
-        const getModelNameByDomain = (domain: string): string => {
-          switch (domain) {
-            case 'City':
-              return 'City.onnx';
-            case 'Oil and Gas':
-              return 'OilandGas.pkl';
-            case 'Traffic':
-              return 'Traffic.onnx';
-            case 'Airports':
-              return 'Airports.onnx';
-            default:
-              return 'GenericModel.pkl';
+      const modelName = getModelNameByDomain(domain);
+      const result = await apiService.generateModel({ ...params });
+
+      const enhancedResult: GenerationResult = { ...result, modelName, accuracy: parseFloat(finalAccuracy.toFixed(2)), precision: parseFloat((finalAccuracy * (0.9 + Math.random() * 0.1)).toFixed(2)), recall: parseFloat((finalAccuracy * (0.92 + Math.random() * 0.1)).toFixed(2)), f1Score: parseFloat((finalAccuracy * (0.91 + Math.random() * 0.1)).toFixed(2)) };
+
+      setGenerationResult(enhancedResult);
+      setIsComplete(true);
+      toast.success('Model Training Complete!', { description: `Your model "${enhancedResult.modelName}" achieved ${enhancedResult.accuracy}% accuracy.` });
+    } catch (error) {
+      toast.error('Training Failed', { description: 'Failed to train model. Please check your parameters and try again.' });
+    } finally {
+        setIsTraining(false);
+    }
+  }, [setTrainingLogs, setGenerationResult, setIsComplete, setIsTraining]);
+
+  useEffect(() => {
+    if (isTraining) {
+      trainingIntervalRef.current = setInterval(() => {
+        setRemainingTime(prevTime => {
+          const newRemainingTime = prevTime - 2;
+          if (newRemainingTime <= 0) {
+            if (trainingIntervalRef.current) clearInterval(trainingIntervalRef.current);
+            finishTraining(modelParameters);
+            return 0;
           }
-        };
 
-        const modelName = getModelNameByDomain(modelParameters.domain);
-        console.log(`[Model Selection] Domain: '${modelParameters.domain}', Selected Model: '${modelName}'`);
-        const result = await apiService.generateModel({ ...modelParameters });
+          const totalDuration = modelParameters.trainingTime * 60;
+          const elapsedTime = totalDuration - newRemainingTime;
+          const progress = elapsedTime / totalDuration;
+          
+          setCurrentEpoch(prevEpoch => {
+              const newEpoch = Math.floor(progress * modelParameters.epochs);
+              if (newEpoch > prevEpoch) {
+                  setTrainingLogs(prevLogs => [...prevLogs, generateLog('epoch', modelParameters, newEpoch)]);
+                  return newEpoch;
+              }
+              return prevEpoch;
+          });
+          
+          if (Math.random() < 0.3) {
+            setTrainingLogs(prevLogs => [...prevLogs, generateLog('log', modelParameters)]);
+          }
 
-        const enhancedResult: GenerationResult = {
-          ...result,
-          modelName, // Override with the correct model name
-          accuracy: parseFloat(finalAccuracy.toFixed(2)),
-          precision: parseFloat((finalAccuracy * (0.9 + Math.random() * 0.1)).toFixed(2)),
-          recall: parseFloat((finalAccuracy * (0.92 + Math.random() * 0.1)).toFixed(2)),
-          f1Score: parseFloat((finalAccuracy * (0.91 + Math.random() * 0.1)).toFixed(2)),
-        };
-
-        setGenerationResult(enhancedResult);
-        setIsComplete(true);
-        setIsTraining(false);
-
-        toast.success('Model Training Complete!', {
-          description: `Your model "${enhancedResult.modelName}" achieved ${enhancedResult.accuracy}% accuracy.`,
+          setAccuracyData(prevData => [...prevData, generateChartData(elapsedTime, totalDuration, modelParameters.epochs, 'accuracy')]);
+          return newRemainingTime;
         });
-      } catch (error) {
-        toast.error('Training Failed', {
-          description: 'Failed to train model. Please check your parameters and try again.',
-        });
-        setIsTraining(false);
+      }, 2000);
+    } else {
+      if (trainingIntervalRef.current) {
+        clearInterval(trainingIntervalRef.current);
+        trainingIntervalRef.current = null;
       }
-    }, trainingTimeInSeconds * 1000);
+    }
+    return () => {
+      if (trainingIntervalRef.current) {
+        clearInterval(trainingIntervalRef.current);
+      }
+    };
+  }, [isTraining, modelParameters, finishTraining, setRemainingTime, setCurrentEpoch, setTrainingLogs, setAccuracyData]);
+
+  const handleStartTraining = (params: ModelParameters) => {
+    setIsTraining(false); // Stop any existing interval
+    setTimeout(() => { // Allow interval to clear
+        const totalDuration = params.trainingTime * 60;
+        setModelParameters(params);
+        setRemainingTime(totalDuration);
+        setCurrentEpoch(0);
+        setTrainingLogs([generateLog('start', params)]);
+        setAccuracyData([]);
+        setIsComplete(false);
+        setGenerationResult(null);
+        setIsTraining(true); // This will trigger the useEffect to start the interval
+        toast.info('Training Started', { description: `Model training initiated. Estimated completion in ~${params.trainingTime} minutes.` });
+    }, 100);
   };
 
   const handleStopTraining = () => {
-    if (trainingTimeoutRef.current) {
-      clearTimeout(trainingTimeoutRef.current);
-    }
-    setIsTraining(false);
-    toast.warning('Training Stopped', {
-      description: 'The training process has been halted by the user.',
-    });
+    setIsTraining(false); // This will trigger the useEffect to clear the interval
+    setTrainingLogs(prev => [...prev, generateLog('stop')]);
+    toast.warning('Training Stopped', { description: 'The training process has been halted by the user.' });
   };
+
+  const handleFileUploadSuccess = () => setIsFileUploaded(true);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -128,9 +174,17 @@ function App() {
                 isTraining={isTraining}
                 isComplete={isComplete}
                 generationResult={generationResult}
-                estimatedTrainingTime={estimatedTrainingTime}
                 onStartTraining={handleStartTraining}
                 onStopTraining={handleStopTraining}
+                isFileUploaded={isFileUploaded}
+                onFileUploadSuccess={handleFileUploadSuccess}
+                modelParameters={modelParameters}
+                onParametersChange={setModelParameters}
+                trainingLogs={trainingLogs}
+                remainingTime={remainingTime}
+                currentEpoch={currentEpoch}
+                accuracyData={accuracyData}
+                estimatedTrainingTime={modelParameters.trainingTime * 60}
               />
             }
           />

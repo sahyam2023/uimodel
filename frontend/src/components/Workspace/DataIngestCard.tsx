@@ -7,9 +7,11 @@ import { Upload, File, CircleCheck, CircleAlert, Loader2, Database } from 'lucid
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 interface DataIngestCardProps {
   onUploadSuccess: () => void;
+  isFileUploaded: boolean;
 }
 
 interface DataSource {
@@ -21,10 +23,10 @@ interface DataSource {
   isExternalConnected?: boolean;
 }
 
-export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCardProps) {
+  const [selectedFile, setSelectedFile] = usePersistentState<File | null>('selectedFile', null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [uploadFailed, setUploadFailed] = useState(false);
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
 
   useEffect(() => {
@@ -40,12 +42,12 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
       );
     }
   }, []);
-
+  
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setUploadStatus('idle');
+      setUploadFailed(false);
     }
   };
 
@@ -53,13 +55,13 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
     if (!selectedFile) return;
 
     setIsUploading(true);
+    setUploadFailed(false);
     try {
       const response = await apiService.uploadFile(selectedFile);
-      setUploadStatus('success');
       toast.success("Upload Successful", { description: response.message });
       onUploadSuccess();
     } catch (error) {
-      setUploadStatus('error');
+      setUploadFailed(true);
       toast.error("Upload Failed", { description: "Failed to upload file. Please try again." });
     } finally {
       setIsUploading(false);
@@ -109,7 +111,6 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* File Upload Section */}
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="file-upload" className="text-sm font-medium text-slate-300">
@@ -120,11 +121,12 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
               type="file"
               accept=".csv,.json,.xml"
               onChange={handleFileSelect}
-              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-4 file:py-2 file:mr-4 file:rounded-md"
+              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-3 file:py-1.5 file:mr-3 file:rounded-md text-sm"
+              disabled={isFileUploaded}
             />
           </div>
 
-          {selectedFile && (
+          {selectedFile && !isFileUploaded && (
             <div className="flex items-center space-x-2 p-3 bg-slate-800 rounded-md border border-slate-700">
               <File className="h-4 w-4 text-slate-400" />
               <span className="text-sm text-slate-300 flex-1">{selectedFile.name}</span>
@@ -134,14 +136,14 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
             </div>
           )}
 
-          {uploadStatus === 'success' && (
+          {isFileUploaded && selectedFile && (
             <div className="flex items-center space-x-2 p-3 bg-green-900/20 border border-green-800 rounded-md">
               <CircleCheck className="h-4 w-4 text-green-400" />
-              <span className="text-sm text-green-300">File uploaded successfully!</span>
+              <span className="text-sm text-green-300">File "{selectedFile.name}" uploaded successfully!</span>
             </div>
           )}
 
-          {uploadStatus === 'error' && (
+          {uploadFailed && (
             <div className="flex items-center space-x-2 p-3 bg-red-900/20 border border-red-800 rounded-md">
               <CircleAlert className="h-4 w-4 text-red-400" />
               <span className="text-sm text-red-300">Upload failed. Please try again.</span>
@@ -150,7 +152,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
 
           <Button
             onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
+            disabled={!selectedFile || isUploading || isFileUploaded}
             className="w-full bg-indigo-600 hover:bg-indigo-700"
           >
             {isUploading ? (
@@ -160,8 +162,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
             )}
           </Button>
         </div>
-
-        {/* Data Source Connections */}
+        
         <div className="space-y-3">
           <Label className="text-sm font-medium text-slate-300">
             Upload to external data sources (optional)

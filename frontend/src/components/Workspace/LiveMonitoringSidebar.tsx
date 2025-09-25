@@ -1,254 +1,74 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, TrendingUp } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Activity, TrendingUp, Cpu, BarChart2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TrainingLog, ChartData } from '@/types';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 interface LiveMonitoringSidebarProps {
   isVisible: boolean;
   isTraining: boolean;
-  estimatedTime: number; // in seconds
+  logs: TrainingLog[];
+  remainingTime: number;
+  currentEpoch: number;
+  totalEpochs: number;
+  accuracyData: ChartData[];
+  estimatedDuration: number;
 }
 
-// A comprehensive and structured collection of realistic training logs
-const realisticLogs = {
-  initialization: [
-    "[INFO] Training environment validated. Python: 3.9.12, TensorFlow: 2.10.0, CUDA: 11.2",
-    "[INFO] Compute resources allocated: 1x NVIDIA V100 GPU, 16x vCPU, 128GB RAM.",
-    "[INFO] Connecting to data source 'production_events_stream'...",
-    "[INFO] Successfully connected to data source. Streaming data...",
-    "[INFO] Reading dataset from remote: gs://acme-corp-datalake/processed/q1-2024-data.arrow",
-    "[INFO] Dataset metadata loaded. Columns: 512, Rows: 2,750,000, Size: 10.2 GB.",
-    "[INFO] Performing initial data integrity and schema validation...",
-    "[SUCCESS] Data integrity check passed. No corrupt records found. Schema is valid.",
-    "[DEBUG] Setting random seeds for reproducibility: NumPy=42, TensorFlow=42.",
-    "[DEBUG] Cleared backend session state.",
-  ],
-  preprocessing: [
-    "[INFO] Launching data preprocessing and feature engineering pipeline.",
-    "[INFO] Applying StandardScaler to 256 numerical features.",
-    "[INFO] Applying Tokenizer and Embedding layer to 16 text features.",
-    "[DEBUG] Vocabulary size for 'product_description': 50,000 tokens.",
-    "[WARN] Missing 3.8% of values in 'user_rating' column. Imputing with median value 4.0.",
-    "[WARN] Outliers detected in 'session_duration'. Applying log transformation.",
-    "[INFO] Performing feature engineering: creating cyclical features for 'hour_of_day'.",
-    "[DEBUG] Generated 28 new features from geolocation data.",
-    "[INFO] Preprocessing complete. Final feature shape: (2,750,000, 890).",
-    "[INFO] Caching preprocessed data to disk for faster subsequent runs.",
-  ],
-  modelBuilding: [
-    "[INFO] Building model architecture: Hybrid GRU-Transformer Network...",
-    "[DEBUG] Added Bidirectional GRU layer with 256 units.",
-    "[DEBUG] Added Multi-Head Attention layer with num_heads=16, key_dim=64.",
-    "[DEBUG] Added Feed-Forward Network with SwiGLU activation.",
-    "[DEBUG] LayerNormalization and Dropout (rate=0.15) added throughout.",
-    "[INFO] Model contains 8 transformer blocks and 2 GRU layers.",
-    "[INFO] Compiling model with AdamW optimizer, learning rate: 5e-5, weight_decay: 0.02.",
-    "[SUCCESS] Model compiled successfully. Total trainable parameters: 112,345,678.",
-  ],
-  system: [
-    "[INFO] GPU Memory Usage: 28.5/32.0 GB",
-    "[INFO] GPU Utilization (avg over 10s): 96%",
-    "[DEBUG] Data augmentation applied: random noise, time-series shifting.",
-    "[DEBUG] Learning rate scheduler: Cosine decay with warmup (10% of steps).",
-    "[INFO] Checkpoint saved to /models/checkpoints/epoch_{epoch}.ckpt",
-    "[DEBUG] TensorBoard profiler running for next 100 steps.",
-    "[DEBUG] Cache hit for data batch {batch_num}. IOPS: 35k.",
-    "[INFO] CPU-to-GPU data transfer pipeline is healthy. Bandwidth: 12.5 GB/s.",
-  ],
-  warning: [
-    "[WARN] High gradient norm detected in 'attention_layer_5': 42.8. Applying gradient clipping.",
-    "[WARN] Validation loss has plateaued for 2 epochs. Early stopping patience: 2/5.",
-    "[WARN] Input pipeline is taking 1.2x longer than model forward pass. Potential IO bottleneck.",
-    "[WARN] Numerical instability detected in final layer. Recasting to float32.",
-  ],
-  special: [
-    "[CRITICAL] System instability detected! Freezing layers and reducing learning rate to recover...",
-    "[INFO] Fine-tuning phase initiated. Unfreezing top 3 transformer blocks.",
-    "[INFO] Recompiling model with a lower learning rate (1e-6) for fine-tuning.",
-    "[INFO] Switching to Stochastic Weight Averaging (SWA) for final epochs.",
-  ],
-  finalization: [
-    "[SUCCESS] Model training completed successfully!",
-    "[INFO] Evaluating final model performance on the held-out test set (250k samples)...",
-    "[METRIC] Final Test Accuracy: {final_accuracy}%",
-    "[INFO] Generating feature importance report using SHAP on 1000 test samples...",
-    "[INFO] Saving final model artifact to /models/production/prod_model_v2.3.onnx",
-    "[INFO] Cleaning up training artifacts and releasing all compute resources...",
-    "[INFO] Generating ROC curve, precision-recall curve, and confusion matrix plots...",
-    "[METRIC] Final AUC: {final_auc}",
-    "[SYSTEM] Training container is shutting down.",
-    "[SUCCESS] Process finished with exit code 0.",
-  ]
+const formatTime = (seconds: number) => {
+  if (seconds < 0) return '00:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const getRandomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+const LOG_LEVEL_COLORS = {
+  info: 'text-slate-400',
+  epoch: 'text-cyan-400 font-semibold',
+  warning: 'text-yellow-400',
+  error: 'text-red-500',
+  system: 'text-indigo-400',
+};
 
-export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: LiveMonitoringSidebarProps) {
-  const [logs, setLogs] = useState<string[]>([]);
-  const [accuracyData, setAccuracyData] = useState<Array<{ step: number; accuracy: number }>>([]);
+function StatsCard({ title, value, subValue }: { title: string; value: string; subValue: string }) {
+    return (
+        <div className="bg-slate-800/50 p-3 rounded-lg text-center">
+            <p className="text-xs text-slate-400">{title}</p>
+            <p className="text-xl font-bold text-white">{value}</p>
+            <p className="text-xs text-slate-500">{subValue}</p>
+        </div>
+    );
+}
+
+export function LiveMonitoringSidebar({ 
+    isVisible, 
+    isTraining,
+    logs,
+    remainingTime,
+    currentEpoch,
+    totalEpochs,
+    accuracyData,
+    estimatedDuration
+}: LiveMonitoringSidebarProps) {
   const logContainerRef = useRef<HTMLDivElement>(null);
-  const trainingStateRef = useRef({
-    intervalId: null as NodeJS.Timeout | null,
-    currentStep: 0,
-    totalSteps: 0,
-    stage: 'idle',
-    epoch: 0,
-    totalEpochs: 0,
-    targetAccuracy: 0,
-  });
-
-  const addLog = (message: string) => {
-    setLogs(prev => [...prev.slice(-199), `[${new Date().toLocaleTimeString()}] ${message}`]);
-  };
-
-  const updateAccuracy = () => {
-    const { currentStep, totalSteps, targetAccuracy } = trainingStateRef.current;
-    const progress = currentStep / totalSteps;
-
-    // Sigmoid-like curve for realistic accuracy growth
-    const steepness = 5;
-    const midpoint = 0.5;
-    const currentAccuracy = targetAccuracy * (1 / (1 + Math.exp(-steepness * (progress - midpoint))));
-
-    // Add some noise
-    const noise = (Math.random() - 0.5) * 0.03 * (1 - progress);
-    const finalAccuracy = Math.max(0, Math.min(0.995, currentAccuracy + noise));
-
-    setAccuracyData(prev => [...prev.slice(-99), { step: trainingStateRef.current.epoch, accuracy: finalAccuracy }]);
-  };
-
-  const runTrainingSimulation = () => {
-    const state = trainingStateRef.current;
-    state.currentStep++;
-
-    switch (state.stage) {
-      case 'init':
-        if (state.currentStep > realisticLogs.initialization.length) {
-          state.stage = 'preprocessing';
-          state.currentStep = 1;
-        } else {
-          addLog(realisticLogs.initialization[state.currentStep - 1]);
-        }
-        break;
-      case 'preprocessing':
-        if (state.currentStep > realisticLogs.preprocessing.length) {
-          state.stage = 'building';
-          state.currentStep = 1;
-        } else {
-          addLog(realisticLogs.preprocessing[state.currentStep - 1]);
-        }
-        break;
-      case 'building':
-        if (state.currentStep > realisticLogs.modelBuilding.length) {
-          state.stage = 'training';
-          state.currentStep = 1;
-          state.epoch = 1;
-        } else {
-          addLog(realisticLogs.modelBuilding[state.currentStep - 1]);
-        }
-        break;
-      case 'training':
-        const stepsPerEpoch = Math.floor(state.totalSteps / state.totalEpochs);
-        if (state.currentStep % stepsPerEpoch === 0) {
-          updateAccuracy();
-          const [loss, acc, val_loss, val_acc] = [Math.random(), accuracyData.at(-1)?.accuracy || 0, Math.random(), accuracyData.at(-1)?.accuracy || 0];
-          const epochLog = `[METRIC] Epoch ${state.epoch}/${state.totalEpochs} - loss: ${loss.toFixed(4)}, acc: ${acc.toFixed(4)}, val_loss: ${val_loss.toFixed(4)}, val_acc: ${val_acc.toFixed(4)}`;
-          addLog(epochLog);
-
-          // Add a random system or warning log
-          if (Math.random() < 0.3) {
-            addLog(getRandomItem([...realisticLogs.system, ...realisticLogs.warning]));
-          }
-
-          // Special logs at 50% and 75%
-          if (state.epoch === Math.floor(state.totalEpochs * 0.5) || state.epoch === Math.floor(state.totalEpochs * 0.75)) {
-            addLog(getRandomItem(realisticLogs.special));
-          }
-
-          state.epoch++;
-        }
-        if (state.epoch > state.totalEpochs) {
-          state.stage = 'finalizing';
-          state.currentStep = 1;
-          updateAccuracy(); // Final accuracy update
-        }
-        break;
-      case 'finalizing':
-        if (state.currentStep > realisticLogs.finalization.length) {
-          state.stage = 'done';
-          if (state.intervalId) clearInterval(state.intervalId);
-        } else {
-          let msg = realisticLogs.finalization[state.currentStep - 1];
-          if (msg.includes('{final_accuracy}')) {
-            msg = msg.replace('{final_accuracy}', (state.targetAccuracy * 100).toFixed(2));
-          }
-          if (msg.includes('{final_auc}')) {
-            msg = msg.replace('{final_auc}', (state.targetAccuracy + Math.random() * 0.05).toFixed(4));
-          }
-          addLog(msg);
-        }
-        break;
-    }
-  };
-
-  useEffect(() => {
-    if (isTraining) {
-      setLogs([]);
-      setAccuracyData([]);
-
-      const trainingTimeMinutes = estimatedTime / 60;
-      let targetAccuracy;
-      if (trainingTimeMinutes <= 10) {
-        targetAccuracy = 0.75 + Math.random() * 0.1; // 75-85%
-      } else if (trainingTimeMinutes <= 30) {
-        targetAccuracy = 0.80 + Math.random() * 0.1; // 80-90%
-      } else {
-        targetAccuracy = 0.85 + Math.random() * 0.1; // 85-95%
-      }
-
-      const totalEpochs = Math.max(10, Math.floor(trainingTimeMinutes * 4)); // ~4 epochs per minute
-      const totalSteps = totalEpochs * 10; // 10 simulation steps per epoch
-      const intervalDuration = (estimatedTime * 1000) / totalSteps;
-
-      trainingStateRef.current = {
-        intervalId: null,
-        currentStep: 0,
-        totalSteps,
-        stage: 'init',
-        epoch: 0,
-        totalEpochs,
-        targetAccuracy
-      };
-
-      const intervalId = setInterval(runTrainingSimulation, intervalDuration);
-      trainingStateRef.current.intervalId = intervalId;
-
-    } else {
-      if (trainingStateRef.current.intervalId) {
-        clearInterval(trainingStateRef.current.intervalId);
-        trainingStateRef.current.intervalId = null;
-      }
-    }
-
-    return () => {
-      if (trainingStateRef.current.intervalId) {
-        clearInterval(trainingStateRef.current.intervalId);
-      }
-    };
-  }, [isTraining, estimatedTime]);
 
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [logs]);
+  
+  const progressPercentage = estimatedDuration > 0 ? ((estimatedDuration - remainingTime) / estimatedDuration) * 100 : 0;
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed right-0 top-0 h-full w-[26rem] bg-slate-900 border-l border-slate-800 shadow-xl z-30 transform transition-transform duration-300 ease-in-out"
-         style={{ transform: isVisible ? 'translateX(0)' : 'translateX(100%)' }}>
+    <div className={cn("fixed right-0 top-16 h-[calc(100vh-4rem)] w-[26rem] bg-slate-900 border-l border-slate-800 shadow-xl z-30 transform transition-transform duration-300 ease-in-out",
+        isVisible ? 'translate-x-0' : 'translate-x-full'
+    )}>
       <ScrollArea className="h-full p-4">
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
@@ -257,56 +77,120 @@ export function LiveMonitoringSidebar({ isVisible, isTraining, estimatedTime }: 
           </div>
 
           <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-300">Training Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    <StatsCard title="Time Remaining" value={formatTime(remainingTime)} subValue="Est." />
+                    <StatsCard title="Current Epoch" value={`${currentEpoch}`} subValue={`/ ${totalEpochs}`} />
+                    <StatsCard title="Accuracy" value={`${accuracyData.at(-1)?.value.toFixed(2) || '0.00'}%`} subValue="Current" />
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-slate-300">Training Logs</CardTitle>
             </CardHeader>
             <CardContent>
-              <div ref={logContainerRef} className="bg-black rounded-md p-3 h-80 overflow-y-auto font-mono text-xs scroll-smooth">
+              <div ref={logContainerRef} className="bg-black rounded-md p-3 h-64 overflow-y-auto font-mono text-xs scroll-smooth">
                 {logs.map((log, index) => (
-                  <div
-                    key={index}
-                    className={`whitespace-nowrap ${
-                      log.includes('[SUCCESS]') ? 'text-green-400' :
-                      log.includes('[METRIC]') ? 'text-cyan-400' :
-                      log.includes('[WARN]') ? 'text-yellow-400' :
-                      log.includes('[CRITICAL]') ? 'text-red-500 animate-pulse' :
-                      log.includes('[DEBUG]') ? 'text-slate-500' :
-                      'text-slate-300'
-                    }`}
-                  >
-                    {log}
+                  <div key={index} className="flex">
+                    <span className="text-slate-500 mr-2">{log.timestamp}</span>
+                    <span className={cn(LOG_LEVEL_COLORS[log.level], 'flex-1')}>
+                      {log.message}
+                    </span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {accuracyData.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4" />
+                <span>Validation Accuracy</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={150}>
+                <AreaChart data={accuracyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="time" stroke="#64748b" fontSize={10} name="Time" unit="s" />
+                  <YAxis stroke="#64748b" fontSize={10} domain={[60, 100]} unit="%" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
+                    labelClassName="font-bold"
+                    formatter={(value: number) => `${value.toFixed(2)}%`}
+                  />
+                  <defs>
+                    <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={2} fill="url(#colorAccuracy)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>Validation Accuracy</span>
+                  <BarChart2 className="h-4 w-4" />
+                  <span>Features Graph</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={150}>
-                  <LineChart data={accuracyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <LineChart data={accuracyData.map(d => ({...d, value: d.value * (0.5 + Math.random() * 0.2)}))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="step" stroke="#64748b" fontSize={10} name="Epoch" />
-                    <YAxis stroke="#64748b" fontSize={10} domain={[0, 1.0]} />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={10} name="Time" unit="s"/>
+                    <YAxis stroke="#64748b" fontSize={10} domain={[0, 1]} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
                       labelClassName="font-bold"
-                      itemStyle={{ color: '#818cf8' }}
-                      formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
+                      formatter={(value: number) => value.toFixed(4)}
                     />
-                    <Line type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="value" stroke="#f472b6" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          )}
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-slate-300 flex items-center space-x-2">
+                  <Cpu className="h-4 w-4" />
+                  <span>Computational Graph</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={150}>
+                   <AreaChart data={accuracyData.map(d => ({...d, value: 70 + Math.sin(d.time / 10) * 15 + Math.random() * 5}))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={10} name="Time" unit="s" />
+                    <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} unit="%"/>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
+                      labelClassName="font-bold"
+                      formatter={(value: number) => `${value.toFixed(2)}%`}
+                    />
+                    <defs>
+                        <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#34d399" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
+                        </linearGradient>
+                    </defs>
+                    <Area type="monotone" dataKey="value" stroke="#34d399" strokeWidth={2} fill="url(#colorCpu)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
         </div>
       </ScrollArea>
     </div>

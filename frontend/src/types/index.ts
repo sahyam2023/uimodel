@@ -74,3 +74,14 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
 }
+
+export interface TrainingLog {
+  timestamp: string;
+  level: 'info' | 'epoch' | 'warning' | 'error' | 'system';
+  message: string;
+}
+
+export interface ChartData {
+  time: number;
+  value: number;
+}

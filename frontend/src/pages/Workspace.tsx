@@ -1,50 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { VisualStepper } from '@/components/Workspace/VisualStepper';
 import { DataIngestCard } from '@/components/Workspace/DataIngestCard';
 import { ConfigurationCard } from '@/components/Workspace/ConfigurationCard';
 import { TrainingCard } from '@/components/Workspace/TrainingCard';
 import { DeploymentCard } from '@/components/Workspace/DeploymentCard';
 import { LiveMonitoringSidebar } from '@/components/Workspace/LiveMonitoringSidebar';
-import { ModelParameters, GenerationResult } from '@/types';
+import { ModelParameters, GenerationResult, TrainingLog, ChartData } from '@/types';
 
 interface WorkspaceProps {
   isTraining: boolean;
   isComplete: boolean;
   generationResult: GenerationResult | null;
-  estimatedTrainingTime: number;
   onStartTraining: (params: ModelParameters) => void;
   onStopTraining: () => void;
+  isFileUploaded: boolean;
+  onFileUploadSuccess: () => void;
+  modelParameters: ModelParameters;
+  onParametersChange: (params: ModelParameters) => void;
+  trainingLogs: TrainingLog[];
+  remainingTime: number;
+  currentEpoch: number;
+  accuracyData: ChartData[];
+  estimatedTrainingTime: number;
 }
 
 export function Workspace({
   isTraining,
   isComplete,
   generationResult,
-  estimatedTrainingTime,
   onStartTraining,
   onStopTraining,
+  isFileUploaded,
+  onFileUploadSuccess,
+  modelParameters,
+  onParametersChange,
+  trainingLogs,
+  remainingTime,
+  currentEpoch,
+  accuracyData,
+  estimatedTrainingTime,
 }: WorkspaceProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isFileUploaded, setIsFileUploaded] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
-  
-  const [modelParameters, setModelParameters] = useState<ModelParameters>({
-    analyticsType: 'Predictive Analytics',
-    domain: 'Transport',
-    modelType: 'Regression',
-    trainingTime: 4,
-    handleMissingData: 'none',
-    dataCleaning: 'none',
-    featureScaling: 'none',
-    geoFencing: true,
-    calculateDistance: false,
-    learningRate: 0.01,
-    epochs: 100,
-    batchSize: 32,
-    validationType: 'train-test',
-    trainTestSplit: 80,
-    kFolds: 5,
-  });
 
   useEffect(() => {
     setShowMonitoring(isTraining);
@@ -58,10 +55,6 @@ export function Workspace({
       setCurrentStep(1);
     }
   }, [isTraining, isComplete, isFileUploaded]);
-
-  const handleFileUploadSuccess = () => {
-    setIsFileUploaded(true);
-  };
 
   const handleStartTrainingClick = () => {
     onStartTraining(modelParameters);
@@ -83,36 +76,49 @@ export function Workspace({
       />
 
       <div className={`grid grid-cols-1 gap-6 transition-all duration-300 ${
-        showMonitoring ? 'lg:grid-cols-2 lg:pr-[22rem]' : 'lg:grid-cols-2'
+        showMonitoring ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
       }`}>
-        <div className="space-y-6">
-          <DataIngestCard onUploadSuccess={handleFileUploadSuccess} />
-          <ConfigurationCard
-            parameters={modelParameters}
-            onParametersChange={setModelParameters}
-          />
+        <div className={`space-y-6 ${showMonitoring ? 'lg:col-span-2' : 'lg:col-span-1'}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DataIngestCard 
+              onUploadSuccess={onFileUploadSuccess} 
+              isFileUploaded={isFileUploaded} 
+            />
+            <ConfigurationCard
+              parameters={modelParameters}
+              onParametersChange={onParametersChange}
+              isTraining={isTraining}
+            />
+            <div className="lg:col-span-2">
+              <TrainingCard
+                isFileUploaded={isFileUploaded}
+                isTraining={isTraining}
+                onStartTraining={handleStartTrainingClick}
+                onStopTraining={onStopTraining}
+                estimatedTrainingTime={estimatedTrainingTime}
+              />
+            </div>
+             {isComplete && generationResult && (
+                <div className="lg:col-span-2">
+                    <DeploymentCard result={generationResult} />
+                </div>
+            )}
+          </div>
         </div>
-
-        <div className="space-y-6">
-          <TrainingCard
-            isFileUploaded={isFileUploaded}
-            isTraining={isTraining}
-            onStartTraining={handleStartTrainingClick}
-            onStopTraining={onStopTraining}
-            estimatedTrainingTime={estimatedTrainingTime}
-          />
-          
-          {generationResult && (
-            <DeploymentCard result={generationResult} />
-          )}
+        
+        <div className={`transition-all duration-300 ${showMonitoring ? 'opacity-100' : 'opacity-0 hidden'}`}>
+            <LiveMonitoringSidebar 
+                isVisible={showMonitoring} 
+                isTraining={isTraining}
+                logs={trainingLogs}
+                remainingTime={remainingTime}
+                currentEpoch={currentEpoch}
+                totalEpochs={modelParameters.epochs}
+                accuracyData={accuracyData}
+                estimatedDuration={estimatedTrainingTime}
+            />
         </div>
       </div>
-
-      <LiveMonitoringSidebar 
-        isVisible={showMonitoring} 
-        isTraining={isTraining}
-        estimatedTime={estimatedTrainingTime}
-      />
     </div>
   );
 }
