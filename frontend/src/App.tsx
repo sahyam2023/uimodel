@@ -66,7 +66,7 @@ function App() {
 
         const modelName = getModelNameByDomain(modelParameters.domain);
         console.log(`[Model Selection] Domain: '${modelParameters.domain}', Selected Model: '${modelName}'`);
-        const result = await apiService.generateModel({ ...modelParameters, modelName });
+        const result = await apiService.generateModel({ ...modelParameters });
 
         const enhancedResult: GenerationResult = {
           ...result,
