@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { VisualStepper } from '@/components/Workspace/VisualStepper';
 import { DataIngestCard } from '@/components/Workspace/DataIngestCard';
 import { ConfigurationCard } from '@/components/Workspace/ConfigurationCard';
@@ -6,16 +6,27 @@ import { TrainingCard } from '@/components/Workspace/TrainingCard';
 import { DeploymentCard } from '@/components/Workspace/DeploymentCard';
 import { LiveMonitoringSidebar } from '@/components/Workspace/LiveMonitoringSidebar';
 import { ModelParameters, GenerationResult } from '@/types';
-import { apiService } from '@/services/api';
-import { useToast } from '@/hooks/use-toast';
 
-export function Workspace() {
+interface WorkspaceProps {
+  isTraining: boolean;
+  isComplete: boolean;
+  generationResult: GenerationResult | null;
+  estimatedTrainingTime: number;
+  onStartTraining: (params: ModelParameters) => void;
+  onStopTraining: () => void;
+}
+
+export function Workspace({
+  isTraining,
+  isComplete,
+  generationResult,
+  estimatedTrainingTime,
+  onStartTraining,
+  onStopTraining,
+}: WorkspaceProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isFileUploaded, setIsFileUploaded] = useState(false);
-  const [isTraining, setIsTraining] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
   const [showMonitoring, setShowMonitoring] = useState(false);
-  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
   
   const [modelParameters, setModelParameters] = useState<ModelParameters>({
     analyticsType: 'Predictive Analytics',
@@ -34,62 +45,25 @@ export function Workspace() {
     kFolds: 5,
   });
 
-  const { toast } = useToast();
+  useEffect(() => {
+    setShowMonitoring(isTraining);
+    if (isTraining) {
+      setCurrentStep(3);
+    } else if (isComplete) {
+      setCurrentStep(4);
+    } else if (isFileUploaded) {
+      setCurrentStep(2);
+    } else {
+      setCurrentStep(1);
+    }
+  }, [isTraining, isComplete, isFileUploaded]);
 
   const handleFileUploadSuccess = () => {
     setIsFileUploaded(true);
-    setCurrentStep(2);
   };
 
-  const handleStartTraining = async () => {
-    setIsTraining(true);
-    setCurrentStep(3);
-    setShowMonitoring(true);
-
-    try {
-      // Simulate realistic training time (10 to 60 minutes)
-      const minTrainingTime = 10 * 60 * 1000;
-      const maxTrainingTime = 60 * 60 * 1000;
-      const trainingTime =
-        Math.floor(Math.random() * (maxTrainingTime - minTrainingTime + 1)) + minTrainingTime;
-      const trainingTimeInMinutes = Math.round(trainingTime / 60000);
-
-      toast({
-        title: 'Training Started',
-        description: `Model training initiated. Estimated completion in ${trainingTimeInMinutes} minutes.`,
-      });
-
-      // Simulate the delay
-      await new Promise((resolve) => setTimeout(resolve, trainingTime));
-
-      const result = await apiService.generateModel(modelParameters);
-
-      // Add performance metrics to the result
-      const enhancedResult: GenerationResult = {
-        ...result,
-        accuracy: 92.4,
-        precision: 89.7,
-        recall: 94.1,
-        f1Score: 91.8,
-      };
-
-      setGenerationResult(enhancedResult);
-      setIsComplete(true);
-      setCurrentStep(4);
-
-      toast({
-        title: 'Model Training Complete!',
-        description: `Your model "${result.modelName}" achieved 92.4% accuracy.`,
-      });
-    } catch (error) {
-      toast({
-        title: 'Training Failed',
-        description: 'Failed to train model. Please check your parameters and try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsTraining(false);
-    }
+  const handleStartTrainingClick = () => {
+    onStartTraining(modelParameters);
   };
 
   return (
@@ -108,9 +82,8 @@ export function Workspace() {
       />
 
       <div className={`grid grid-cols-1 gap-6 transition-all duration-300 ${
-        showMonitoring ? 'lg:grid-cols-2 lg:pr-80' : 'lg:grid-cols-2'
+        showMonitoring ? 'lg:grid-cols-2 lg:pr-[22rem]' : 'lg:grid-cols-2'
       }`}>
-        {/* Left Column */}
         <div className="space-y-6">
           <DataIngestCard onUploadSuccess={handleFileUploadSuccess} />
           <ConfigurationCard
@@ -119,12 +92,13 @@ export function Workspace() {
           />
         </div>
 
-        {/* Right Column */}
         <div className="space-y-6">
           <TrainingCard
             isFileUploaded={isFileUploaded}
             isTraining={isTraining}
-            onStartTraining={handleStartTraining}
+            onStartTraining={handleStartTrainingClick}
+            onStopTraining={onStopTraining}
+            estimatedTrainingTime={estimatedTrainingTime}
           />
           
           {generationResult && (
@@ -135,7 +109,8 @@ export function Workspace() {
 
       <LiveMonitoringSidebar 
         isVisible={showMonitoring} 
-        isTraining={isTraining} 
+        isTraining={isTraining}
+        estimatedTime={estimatedTrainingTime}
       />
     </div>
   );
