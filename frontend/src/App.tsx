@@ -12,83 +12,82 @@ import ServerDetails from '@/pages/ServerDetails';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { apiService } from './services/api';
-import { ModelParameters, GenerationResult } from './types';
+import { ModelParameters, GenerationResult, TrainingStatus } from './types';
+
+// Define a comprehensive state for the entire workspace
+interface WorkspaceState {
+  status: TrainingStatus;
+  isFileUploaded: boolean;
+  modelParameters: ModelParameters | null;
+  estimatedTrainingTime: number;
+  generationResult: GenerationResult | null;
+  trainingStartTime: number | null;
+}
+
+const initialWorkspaceState: WorkspaceState = {
+  status: 'idle',
+  isFileUploaded: false,
+  modelParameters: null,
+  estimatedTrainingTime: 0,
+  generationResult: null,
+  trainingStartTime: null,
+};
 
 function App() {
-  // Global state for training
-  const [isTraining, setIsTraining] = useState(false);
-  const [estimatedTrainingTime, setEstimatedTrainingTime] = useState(0);
-  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
-  const [isComplete, setIsComplete] = useState(false);
-
+  const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(initialWorkspaceState);
   const trainingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleStartTraining = (modelParameters: ModelParameters) => {
-    setIsTraining(true);
-    setIsComplete(false);
-    setGenerationResult(null);
+  const handleStartTraining = (params: ModelParameters) => {
+    const trainingTimeInSeconds = params.trainingTime * 60;
 
-    const trainingTimeInSeconds = modelParameters.trainingTime * 60;
-    setEstimatedTrainingTime(trainingTimeInSeconds);
+    setWorkspaceState(prevState => ({
+      ...prevState,
+      status: 'training',
+      modelParameters: params,
+      estimatedTrainingTime: trainingTimeInSeconds,
+      generationResult: null,
+      trainingStartTime: Date.now(),
+    }));
 
     toast.info('Training Started', {
-      description: `Model training initiated. Estimated completion in ~${modelParameters.trainingTime} minutes.`,
+      description: `Model training initiated. Estimated completion in ~${params.trainingTime} minutes.`,
     });
 
     trainingTimeoutRef.current = setTimeout(async () => {
       try {
-        // 1. Final Accuracy Calculation
-        const { trainingTime } = modelParameters;
+        const { trainingTime } = params;
         let finalAccuracy: number;
-        if (trainingTime <= 10) {
-          finalAccuracy = 75 + Math.random() * 10; // 75-85%
-        } else if (trainingTime <= 30) {
-          finalAccuracy = 80 + Math.random() * 10; // 80-90%
-        } else {
-          finalAccuracy = 85 + Math.random() * 10; // 85-95%
-        }
+        if (trainingTime <= 10) finalAccuracy = 75 + Math.random() * 10;
+        else if (trainingTime <= 30) finalAccuracy = 80 + Math.random() * 10;
+        else finalAccuracy = 85 + Math.random() * 10;
 
-        // 2. Model Selection Logic
         const getModelNameByDomain = (domain: string): string => {
-          switch (domain) {
-            case 'City':
-              return 'City.onnx';
-            case 'Oil and Gas':
-              return 'OilandGas.pkl';
-            case 'Traffic':
-              return 'Traffic.onnx';
-            case 'Airports':
-              return 'Airports.onnx';
-            default:
-              return 'GenericModel.pkl';
-          }
+          const domainMap = { 'City': 'City.onnx', 'Oil and Gas': 'OilandGas.pkl', 'Traffic': 'Traffic.onnx', 'Airports': 'Airports.onnx' };
+          return domainMap[domain] || 'GenericModel.pkl';
         };
 
-        const modelName = getModelNameByDomain(modelParameters.domain);
-        console.log(`[Model Selection] Domain: '${modelParameters.domain}', Selected Model: '${modelName}'`);
-        const result = await apiService.generateModel({ ...modelParameters, modelName });
+        const modelName = getModelNameByDomain(params.domain);
+        const result = await apiService.generateModel({ ...params, modelName });
 
         const enhancedResult: GenerationResult = {
           ...result,
-          modelName, // Override with the correct model name
+          modelName,
           accuracy: parseFloat(finalAccuracy.toFixed(2)),
           precision: parseFloat((finalAccuracy * (0.9 + Math.random() * 0.1)).toFixed(2)),
           recall: parseFloat((finalAccuracy * (0.92 + Math.random() * 0.1)).toFixed(2)),
           f1Score: parseFloat((finalAccuracy * (0.91 + Math.random() * 0.1)).toFixed(2)),
         };
 
-        setGenerationResult(enhancedResult);
-        setIsComplete(true);
-        setIsTraining(false);
-
+        setWorkspaceState(prevState => ({ ...prevState, status: 'completed', generationResult: enhancedResult, trainingStartTime: null }));
         toast.success('Model Training Complete!', {
           description: `Your model "${enhancedResult.modelName}" achieved ${enhancedResult.accuracy}% accuracy.`,
         });
+
       } catch (error) {
+        setWorkspaceState(prevState => ({ ...prevState, status: 'idle', trainingStartTime: null }));
         toast.error('Training Failed', {
           description: 'Failed to train model. Please check your parameters and try again.',
         });
-        setIsTraining(false);
       }
     }, trainingTimeInSeconds * 1000);
   };
@@ -97,26 +96,34 @@ function App() {
     if (trainingTimeoutRef.current) {
       clearTimeout(trainingTimeoutRef.current);
     }
-    setIsTraining(false);
+    setWorkspaceState(prevState => ({ ...prevState, status: 'stopped', trainingStartTime: null }));
     toast.warning('Training Stopped', {
       description: 'The training process has been halted by the user.',
     });
   };
 
+  const handleFileUploadSuccess = (isSuccess: boolean) => {
+    setWorkspaceState(prevState => ({ ...prevState, isFileUploaded: isSuccess }));
+  };
+
+  const handleParametersChange = (params: ModelParameters) => {
+    setWorkspaceState(prevState => ({...prevState, modelParameters: params}));
+  }
+
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (isTraining) {
+      if (workspaceState.status === 'training') {
         event.preventDefault();
         event.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isTraining]);
+  }, [workspaceState.status]);
 
   return (
     <Router>
-      <AppLayout isTraining={isTraining}>
+      <AppLayout isTraining={workspaceState.status === 'training'}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -125,12 +132,11 @@ function App() {
             path="/workspace"
             element={
               <Workspace
-                isTraining={isTraining}
-                isComplete={isComplete}
-                generationResult={generationResult}
-                estimatedTrainingTime={estimatedTrainingTime}
+                workspaceState={workspaceState}
                 onStartTraining={handleStartTraining}
                 onStopTraining={handleStopTraining}
+                onFileUploadSuccess={handleFileUploadSuccess}
+                onParametersChange={handleParametersChange}
               />
             }
           />

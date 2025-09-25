@@ -45,9 +45,10 @@ const MetricChart = ({ data, color }) => (
   </ResponsiveContainer>
 );
 
-const ServerCard = ({ serverId, isActive }) => {
+const ServerCard = ({ serverId, isActive, isCritical }) => {
   const [isFetching, setIsFetching] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [ipAddress, setIpAddress] = useState('');
   const [metrics, setMetrics] = useState({
     cpuTemp: 0,
     gpuTemp: 0,
@@ -59,22 +60,40 @@ const ServerCard = ({ serverId, isActive }) => {
   const [gpuHistory, setGpuHistory] = useState([]);
 
   useEffect(() => {
+    // Generate a random IP address on component mount
+    const randomIpEnding = Math.floor(Math.random() * 11) + 10; // 10 to 20
+    setIpAddress(`192.168.3.${randomIpEnding}`);
+  }, []);
+
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     if (showDetails) {
       interval = setInterval(() => {
         setCpuHistory(prev => [...prev.slice(-20), { value: Math.floor(Math.random() * 100) }]);
         setGpuHistory(prev => [...prev.slice(-20), { value: Math.floor(Math.random() * 100) }]);
+
+        const cpuTemp = isCritical
+          ? Math.floor(Math.random() * (99 - 90 + 1)) + 90 // 90-99°C
+          : Math.floor(Math.random() * (89 - 60 + 1)) + 60; // 60-89°C
+
+        const gpuTemp = isCritical
+          ? Math.floor(Math.random() * (99 - 90 + 1)) + 90
+          : Math.floor(Math.random() * (89 - 60 + 1)) + 60;
+
         setMetrics({
-          cpuTemp: Math.floor(Math.random() * (90 - 40 + 1)) + 40,
-          gpuTemp: Math.floor(Math.random() * (95 - 45 + 1)) + 45,
+          cpuTemp,
+          gpuTemp,
           memoryUsage: Math.floor(Math.random() * 100),
           diskUsage: Math.floor(Math.random() * 100),
           processes: Array.from({ length: 3 }, generateFakeProcess),
         });
       }, 1500);
+    } else {
+        // Reset metrics when details are hidden
+        setMetrics(prev => ({...prev, cpuTemp: 0, gpuTemp: 0}));
     }
     return () => clearInterval(interval);
-  }, [showDetails]);
+  }, [showDetails, isCritical]);
 
   const handleClick = () => {
     if (showDetails) {
@@ -90,6 +109,12 @@ const ServerCard = ({ serverId, isActive }) => {
     }
   };
 
+  const getTempColor = (temp) => {
+    if (temp >= 90) return 'text-red-500';
+    if (temp >= 70) return 'text-amber-400';
+    return 'text-slate-400';
+  };
+
   const status = isActive ? (isFetching ? 'fetching' : 'online') : 'offline';
 
   return (
@@ -100,18 +125,21 @@ const ServerCard = ({ serverId, isActive }) => {
             <ServerIcon status={status} />
             <div>
               <CardTitle className="text-white">Server {serverId}</CardTitle>
-              <p className={cn("text-sm",
+              <p className="text-xs text-slate-500 font-mono pt-1">{ipAddress}</p>
+            </div>
+          </div>
+           <div className="text-right">
+             <p className={cn("text-sm font-medium",
                 status === 'online' && 'text-green-400',
                 status === 'offline' && 'text-slate-500',
                 status === 'fetching' && 'text-amber-400'
               )}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </p>
-            </div>
-          </div>
-          <Button onClick={handleClick} disabled={isFetching || !isActive} size="sm">
-            {isFetching ? 'Fetching...' : showDetails ? 'Hide' : 'Details'}
-          </Button>
+             <Button onClick={handleClick} disabled={isFetching || !isActive} size="sm" className="mt-1">
+                {isFetching ? 'Fetching...' : showDetails ? 'Hide' : 'Details'}
+             </Button>
+           </div>
         </div>
       </CardHeader>
       {showDetails && (
@@ -125,8 +153,8 @@ const ServerCard = ({ serverId, isActive }) => {
               <div className="flex justify-between items-center text-slate-400"><span><Zap className="mr-2 h-4 w-4 inline"/>GPU</span> <span>{gpuHistory.at(-1)?.value || 0}%</span></div>
               <MetricChart data={gpuHistory} color="#a78bfa" />
             </div>
-            <div className="flex items-center text-slate-400"><Thermometer className="mr-2 h-4 w-4" /> CPU Temp: {metrics.cpuTemp}°C</div>
-            <div className="flex items-center text-slate-400"><Thermometer className="mr-2 h-4 w-4" /> GPU Temp: {metrics.gpuTemp}°C</div>
+            <div className={cn("flex items-center", getTempColor(metrics.cpuTemp))}><Thermometer className="mr-2 h-4 w-4" /> CPU Temp: {metrics.cpuTemp}°C</div>
+            <div className={cn("flex items-center", getTempColor(metrics.gpuTemp))}><Thermometer className="mr-2 h-4 w-4" /> GPU Temp: {metrics.gpuTemp}°C</div>
             <div className="flex items-center text-slate-400"><MemoryStick className="mr-2 h-4 w-4" /> Memory: {metrics.memoryUsage}%</div>
             <div className="flex items-center text-slate-400"><HardDrive className="mr-2 h-4 w-4" /> Disk: {metrics.diskUsage}%</div>
           </div>
@@ -156,7 +184,12 @@ const ServerDetails = () => {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[...Array(totalServers)].map((_, i) => (
-          <ServerCard key={i + 1} serverId={i + 1} isActive={i < onlineServers} />
+          <ServerCard
+            key={i + 1}
+            serverId={i + 1}
+            isActive={i < onlineServers}
+            isCritical={i + 1 === 3} // Designate Server 3 as the critical one
+          />
         ))}
       </div>
     </div>

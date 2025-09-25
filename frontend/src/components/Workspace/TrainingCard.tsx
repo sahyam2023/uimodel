@@ -11,7 +11,8 @@ interface TrainingCardProps {
   isTraining: boolean;
   onStartTraining: () => void;
   onStopTraining: () => void;
-  estimatedTrainingTime: number; // in seconds
+  estimatedTrainingTime: number;
+  trainingStartTime: number | null;
 }
 
 const stopMessages = [
@@ -29,9 +30,10 @@ export function TrainingCard({
   onStartTraining,
   onStopTraining,
   estimatedTrainingTime,
+  trainingStartTime,
 }: TrainingCardProps) {
   const [gpuUtilization, setGpuUtilization] = useState(0);
-  const [remainingTime, setRemainingTime] = useState(estimatedTrainingTime);
+  const [remainingTime, setRemainingTime] = useState(0);
   const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [stoppingProgress, setStoppingProgress] = useState(0);
@@ -41,24 +43,33 @@ export function TrainingCard({
     let utilizationInterval: NodeJS.Timeout;
     let timeInterval: NodeJS.Timeout;
 
-    if (isTraining) {
-      setRemainingTime(estimatedTrainingTime);
+    if (isTraining && trainingStartTime) {
       utilizationInterval = setInterval(() => {
         setGpuUtilization(Math.floor(Math.random() * (98 - 70 + 1)) + 70);
       }, 2000);
 
       timeInterval = setInterval(() => {
-        setRemainingTime(prev => (prev > 0 ? prev - 1 : 0));
+        const elapsed = (Date.now() - trainingStartTime) / 1000;
+        const newRemaining = Math.max(0, estimatedTrainingTime - elapsed);
+        setRemainingTime(newRemaining);
+
+        if (newRemaining <= 0) {
+          // This check is slightly redundant with App.tsx's timeout,
+          // but ensures the UI stops itself if the parent state is slow to update.
+          onStopTraining();
+          clearInterval(timeInterval);
+        }
       }, 1000);
     } else {
       setGpuUtilization(0);
+      setRemainingTime(0);
     }
 
     return () => {
       clearInterval(utilizationInterval);
       clearInterval(timeInterval);
     };
-  }, [isTraining, estimatedTrainingTime]);
+  }, [isTraining, estimatedTrainingTime, trainingStartTime]);
 
   const handleStopClick = () => {
     setIsStopConfirmOpen(true);
