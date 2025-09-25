@@ -65,10 +65,10 @@ export function ParameterSelectionCard({ parameters, onParametersChange }: Param
               <SelectValue placeholder="Select city domain" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Transport">Transport</SelectItem>
-              <SelectItem value="Solid Waste">Solid Waste</SelectItem>
-              <SelectItem value="Water Management">Water Management</SelectItem>
-              <SelectItem value="Public Safety">Public Safety</SelectItem>
+              <SelectItem value="Oil and Gas">Oil and Gas</SelectItem>
+              <SelectItem value="Airports">Airports</SelectItem>
+              <SelectItem value="Traffic">Traffic</SelectItem>
+              <SelectItem value="City">City</SelectItem>
             </SelectContent>
           </Select>
         </div>
