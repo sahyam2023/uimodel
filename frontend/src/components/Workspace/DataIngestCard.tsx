@@ -122,7 +122,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
         {/* Data Source Connections */}
         <div className="space-y-3">
           <Label className="text-sm font-medium text-slate-300">
-            Or connect to external data sources
+            Or Upload to external data sources
           </Label>
           <div className="grid grid-cols-3 gap-3">
             <Button variant="outline" className="flex flex-col items-center p-4 h-auto bg-slate-800 border-slate-700 hover:bg-slate-700">
