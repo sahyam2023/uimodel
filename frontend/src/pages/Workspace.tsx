@@ -45,10 +45,25 @@ export function Workspace() {
     setIsTraining(true);
     setCurrentStep(3);
     setShowMonitoring(true);
-    
+
     try {
+      // Simulate realistic training time (10 to 60 minutes)
+      const minTrainingTime = 10 * 60 * 1000;
+      const maxTrainingTime = 60 * 60 * 1000;
+      const trainingTime =
+        Math.floor(Math.random() * (maxTrainingTime - minTrainingTime + 1)) + minTrainingTime;
+      const trainingTimeInMinutes = Math.round(trainingTime / 60000);
+
+      toast({
+        title: 'Training Started',
+        description: `Model training initiated. Estimated completion in ${trainingTimeInMinutes} minutes.`,
+      });
+
+      // Simulate the delay
+      await new Promise((resolve) => setTimeout(resolve, trainingTime));
+
       const result = await apiService.generateModel(modelParameters);
-      
+
       // Add performance metrics to the result
       const enhancedResult: GenerationResult = {
         ...result,
@@ -57,20 +72,20 @@ export function Workspace() {
         recall: 94.1,
         f1Score: 91.8,
       };
-      
+
       setGenerationResult(enhancedResult);
       setIsComplete(true);
       setCurrentStep(4);
-      
+
       toast({
-        title: "Model Training Complete!",
+        title: 'Model Training Complete!',
         description: `Your model "${result.modelName}" achieved 92.4% accuracy.`,
       });
     } catch (error) {
       toast({
-        title: "Training Failed",
-        description: "Failed to train model. Please check your parameters and try again.",
-        variant: "destructive",
+        title: 'Training Failed',
+        description: 'Failed to train model. Please check your parameters and try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsTraining(false);

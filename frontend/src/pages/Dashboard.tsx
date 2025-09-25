@@ -6,8 +6,9 @@ import { KPIData } from '@/types';
 const kpiData: KPIData = {
   activeModels: 12,
   totalDatasets: 87,
-  monthlyCost: 4320,
-  apiPredictions: '1.2M',
+  serverLoad: 76,
+  serversOnline: 18,
+  serversTotal: 20,
 };
 
 export function Dashboard() {
