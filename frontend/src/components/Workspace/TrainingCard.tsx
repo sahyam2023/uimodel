@@ -11,7 +11,6 @@ interface TrainingCardProps {
   isTraining: boolean;
   onStartTraining: () => void;
   onStopTraining: () => void;
-  estimatedTrainingTime: number; // in seconds
 }
 
 const stopMessages = [
@@ -28,10 +27,8 @@ export function TrainingCard({
   isTraining,
   onStartTraining,
   onStopTraining,
-  estimatedTrainingTime,
 }: TrainingCardProps) {
   const [gpuUtilization, setGpuUtilization] = useState(0);
-  const [remainingTime, setRemainingTime] = useState(estimatedTrainingTime);
   const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [stoppingProgress, setStoppingProgress] = useState(0);
@@ -39,26 +36,15 @@ export function TrainingCard({
 
   useEffect(() => {
     let utilizationInterval: NodeJS.Timeout;
-    let timeInterval: NodeJS.Timeout;
-
     if (isTraining) {
-      setRemainingTime(estimatedTrainingTime);
       utilizationInterval = setInterval(() => {
         setGpuUtilization(Math.floor(Math.random() * (98 - 70 + 1)) + 70);
       }, 2000);
-
-      timeInterval = setInterval(() => {
-        setRemainingTime(prev => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
     } else {
       setGpuUtilization(0);
     }
-
-    return () => {
-      clearInterval(utilizationInterval);
-      clearInterval(timeInterval);
-    };
-  }, [isTraining, estimatedTrainingTime]);
+    return () => clearInterval(utilizationInterval);
+  }, [isTraining]);
 
   const handleStopClick = () => {
     setIsStopConfirmOpen(true);
@@ -89,13 +75,6 @@ export function TrainingCard({
         }, 1000);
       }
     }, 300);
-  };
-
-  const formatTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
   };
 
   return (
@@ -149,13 +128,7 @@ export function TrainingCard({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="p-3 bg-slate-800 rounded-lg">
-              <p className="text-slate-400">Remaining Time</p>
-              <p className="text-white font-medium">
-                {isTraining ? formatTime(remainingTime) : 'N/A'}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 text-sm">
             <div className="p-3 bg-slate-800 rounded-lg">
               <p className="text-slate-400">GPU Utilization</p>
               <p className="text-white font-medium">{gpuUtilization}%</p>

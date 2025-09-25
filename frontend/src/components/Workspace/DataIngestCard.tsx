@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedDataSources = sessionStorage.getItem('dataSources');
@@ -58,6 +59,10 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
       setUploadStatus('success');
       toast.success("Upload Successful", { description: response.message });
       onUploadSuccess();
+      setSelectedFile(null); // Clear the selected file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Reset the file input
+      }
     } catch (error) {
       setUploadStatus('error');
       toast.error("Upload Failed", { description: "Failed to upload file. Please try again." });
@@ -117,10 +122,11 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
             </Label>
             <Input
               id="file-upload"
+              ref={fileInputRef}
               type="file"
               accept=".csv,.json,.xml"
               onChange={handleFileSelect}
-              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-4 file:py-2 file:mr-4 file:rounded-md"
+              className="cursor-pointer bg-slate-800 border-slate-700 text-transparent file:text-slate-300 file:bg-slate-700 file:border-none file:px-4 file:py-2 file:mr-4 file:rounded-md"
             />
           </div>
 

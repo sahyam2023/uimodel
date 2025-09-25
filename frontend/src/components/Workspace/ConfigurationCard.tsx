@@ -34,7 +34,7 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800 gap-1">
             <TabsTrigger value="general" className="data-[state=active]:bg-slate-700">General</TabsTrigger>
             <TabsTrigger value="hyperparameters" className="data-[state=active]:bg-slate-700">Hyperparameters</TabsTrigger>
             <TabsTrigger value="validation" className="data-[state=active]:bg-slate-700">Validation</TabsTrigger>

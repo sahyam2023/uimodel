@@ -12,6 +12,7 @@ interface WorkspaceProps {
   isComplete: boolean;
   generationResult: GenerationResult | null;
   estimatedTrainingTime: number;
+  remainingTime: number;
   onStartTraining: (params: ModelParameters) => void;
   onStopTraining: () => void;
 }
@@ -21,6 +22,7 @@ export function Workspace({
   isComplete,
   generationResult,
   estimatedTrainingTime,
+  remainingTime,
   onStartTraining,
   onStopTraining,
 }: WorkspaceProps) {
@@ -82,37 +84,39 @@ export function Workspace({
         isComplete={isComplete} 
       />
 
-      <div className={`grid grid-cols-1 gap-6 transition-all duration-300 ${
-        showMonitoring ? 'lg:grid-cols-2 lg:pr-[22rem]' : 'lg:grid-cols-2'
+      <div className={`relative transition-all duration-300 ${
+        (showMonitoring || (isComplete && generationResult)) ? 'lg:pr-[26rem]' : ''
       }`}>
         <div className="space-y-6">
-          <DataIngestCard onUploadSuccess={handleFileUploadSuccess} />
-          <ConfigurationCard
-            parameters={modelParameters}
-            onParametersChange={setModelParameters}
-          />
-        </div>
-
-        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DataIngestCard onUploadSuccess={handleFileUploadSuccess} />
+            <ConfigurationCard
+              parameters={modelParameters}
+              onParametersChange={setModelParameters}
+            />
+          </div>
           <TrainingCard
             isFileUploaded={isFileUploaded}
             isTraining={isTraining}
             onStartTraining={handleStartTrainingClick}
             onStopTraining={onStopTraining}
-            estimatedTrainingTime={estimatedTrainingTime}
           />
-          
-          {generationResult && (
-            <DeploymentCard result={generationResult} />
-          )}
         </div>
       </div>
 
-      <LiveMonitoringSidebar 
-        isVisible={showMonitoring} 
-        isTraining={isTraining}
-        estimatedTime={estimatedTrainingTime}
-      />
+      {isComplete && generationResult ? (
+        <div className="fixed top-16 right-0 h-full w-[26rem] bg-slate-900 p-6 overflow-y-auto transition-transform duration-300 translate-x-0 z-10">
+           <h3 className="text-xl font-bold text-white mb-4">Step 4: Deployment</h3>
+           <DeploymentCard result={generationResult} />
+        </div>
+      ) : (
+        <LiveMonitoringSidebar
+          isVisible={showMonitoring}
+          isTraining={isTraining}
+          estimatedTime={estimatedTrainingTime}
+          remainingTime={remainingTime}
+        />
+      )}
     </div>
   );
 }
