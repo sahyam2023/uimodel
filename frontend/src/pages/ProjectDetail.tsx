@@ -118,7 +118,7 @@ export function ProjectDetail() {
                 step={1}
                 value={[trainingTime]}
                 onValueChange={(value) => setTrainingTime(value[0])}
-                className="[&>span:first-child]:h-1 [&>span:first-child]:bg-slate-700 [&>span:first-child>span]:bg-indigo-400"
+                className="[&>span:first-child]:h-1 [&>span:first-child]:bg-slate-700 [&>span:first-child>span]:bg-indigo-400 [&>[role=slider]]:bg-indigo-500 [&>[role=slider]]:border-indigo-300/50"
               />
             </div>
             <Button
