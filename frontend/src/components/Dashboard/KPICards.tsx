@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Database, DollarSign, Activity } from 'lucide-react';
+import { Cpu, Database, Server, Activity } from 'lucide-react';
 import { KPIData } from '@/types';
 
 interface KPICardsProps {
@@ -23,16 +23,16 @@ export function KPICards({ data }: KPICardsProps) {
       bgColor: 'bg-blue-400/10',
     },
     {
-      title: 'Monthly Compute Cost',
-      value: `$${data.monthlyCost.toLocaleString()}`,
-      icon: DollarSign,
+      title: 'Server Load',
+      value: `${data.serverLoad}%`,
+      icon: Cpu,
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-400/10',
     },
     {
-      title: 'API Predictions Today',
-      value: data.apiPredictions,
-      icon: TrendingUp,
+      title: 'Server Status',
+      value: `${data.serversOnline} / ${data.serversTotal}`,
+      icon: Server,
       color: 'text-purple-400',
       bgColor: 'bg-purple-400/10',
     },

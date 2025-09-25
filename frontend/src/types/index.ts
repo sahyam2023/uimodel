@@ -61,8 +61,9 @@ export interface Model {
 export interface KPIData {
   activeModels: number;
   totalDatasets: number;
-  monthlyCost: number;
-  apiPredictions: string;
+  serverLoad: number;
+  serversOnline: number;
+  serversTotal: number;
 }
 
 export interface ChatMessage {
