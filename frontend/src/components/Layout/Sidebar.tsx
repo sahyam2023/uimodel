@@ -41,7 +41,7 @@ export function Sidebar() {
                 <Zap className="h-4 w-4 text-yellow-400 absolute -top-1 -right-1" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-white">Smart City AI</h1>
+                <h1 className="text-lg font-semibold text-white">I2v data trainer</h1>
                 <p className="text-xs text-slate-400">ML Platform</p>
               </div>
             </div>
@@ -84,7 +84,7 @@ export function Sidebar() {
         <div className="p-4 border-t border-slate-800">
           <div className="text-xs text-slate-500">
             <p>Version 2.1.0</p>
-            <p>© 2025 Smart City AI</p>
+            <p>© 2025 I2v data trainer</p>
           </div>
         </div>
       )}

@@ -21,7 +21,7 @@ const pageNames: Record<string, string> = {
 
 export function Header() {
   const location = useLocation();
-  const currentPageName = pageNames[location.pathname] || 'Smart City AI Platform';
+  const currentPageName = pageNames[location.pathname] || 'I2v data trainer Platform';
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 px-6 py-4">

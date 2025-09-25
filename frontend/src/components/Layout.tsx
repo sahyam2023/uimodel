@@ -18,7 +18,7 @@ export function Layout({ children }: LayoutProps) {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-slate-800">
-                  Smart City AI Platform
+                  I2v data trainer Platform
                 </h1>
                 <p className="text-sm text-slate-600">
                   Machine Learning Model Generation Suite
