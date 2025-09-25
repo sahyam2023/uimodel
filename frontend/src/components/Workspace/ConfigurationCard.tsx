@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Settings, FileSliders as Sliders, Target } from 'lucide-react';
 import { ModelParameters } from '@/types';
 
@@ -61,7 +60,7 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300">City Domain</Label>
+                <Label className="text-slate-300">Domain</Label>
                 <Select
                   value={parameters.domain}
                   onValueChange={(value) => updateParameter('domain', value)}
@@ -70,10 +69,10 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="Transport">Transport</SelectItem>
-                    <SelectItem value="Solid Waste">Solid Waste</SelectItem>
-                    <SelectItem value="Water Management">Water Management</SelectItem>
-                    <SelectItem value="Public Safety">Public Safety</SelectItem>
+                    <SelectItem value="Oil and Gas">Oil and Gas</SelectItem>
+                    <SelectItem value="Airports">Airports</SelectItem>
+                    <SelectItem value="Traffic">Traffic</SelectItem>
+                    <SelectItem value="City">City</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -102,8 +101,8 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="handle-missing-data"
-                    checked={parameters.handleMissingData}
-                    onCheckedChange={(checked) => updateParameter('handleMissingData', checked)}
+                    checked={!!parameters.handleMissingData}
+                    onCheckedChange={(checked) => updateParameter('handleMissingData', checked === true)}
                   />
                   <Label htmlFor="handle-missing-data" className="text-sm text-slate-300">
                     Handle Missing Data
@@ -112,8 +111,8 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="data-cleaning"
-                    checked={parameters.dataCleaning}
-                    onCheckedChange={(checked) => updateParameter('dataCleaning', checked)}
+                    checked={!!parameters.dataCleaning}
+                    onCheckedChange={(checked) => updateParameter('dataCleaning', checked === true)}
                   />
                   <Label htmlFor="data-cleaning" className="text-sm text-slate-300">
                     Data Cleaning
@@ -122,8 +121,8 @@ export function ConfigurationCard({ parameters, onParametersChange }: Configurat
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="feature-scaling"
-                    checked={parameters.featureScaling}
-                    onCheckedChange={(checked) => updateParameter('featureScaling', checked)}
+                    checked={!!parameters.featureScaling}
+                    onCheckedChange={(checked) => updateParameter('featureScaling', checked === true)}
                   />
                   <Label htmlFor="feature-scaling" className="text-sm text-slate-300">
                     Feature Scaling
