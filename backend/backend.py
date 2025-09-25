@@ -37,6 +37,7 @@ def create_project():
         'name': data.get('name'),
         'description': data.get('description'),
         'owner': data.get('owner'),
+        'domainType': data.get('domainType'),
         'createdAt': time.time()
     }
     projects_db[project_id] = new_project
@@ -103,6 +104,114 @@ def get_models():
     return jsonify(models)
 
 import random
+from flask import Response, stream_with_context
+from training_logs import TRAINING_LOGS
+
+@app.route('/api/train_model_stream', methods=['GET'])
+def train_model_stream():
+    """
+    Simulates a model training process, streaming logs and accuracy updates via SSE.
+    """
+    project_id = request.args.get('projectId')
+    training_time_minutes = int(request.args.get('trainingTime', 4))
+
+    if not project_id:
+        return jsonify({'error': 'Project ID is required'}), 400
+
+    project = projects_db.get(project_id)
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+
+    domain = project.get('domainType', 'default')
+
+    # --- Dynamic Model Selection ---
+    model_map = {
+        'City': 'City.onnx',
+        'Oil and Gas': 'OilandGas.pkl',
+        'Traffic': 'Traffic.onnx',
+        'Airports': 'Airports.onnx'
+    }
+    selected_model_file = model_map.get(domain)
+    if not selected_model_file:
+        # Fallback for other domains
+        available_models = [f for f in os.listdir(MODELS_FOLDER) if os.path.isfile(os.path.join(MODELS_FOLDER, f))]
+        selected_model_file = random.choice(available_models) if available_models else None
+
+    if not selected_model_file:
+        return jsonify({'error': 'No suitable model found for the project domain.'}), 500
+
+    def generate_logs():
+        total_seconds = training_time_minutes * 60
+        num_epochs = min(100, max(10, int(training_time_minutes * 2.5))) # Scale epochs with time
+
+        # 1. Starting Logs
+        start_logs = [
+            "Initializing training environment...",
+            "Authenticating user...",
+            "Requesting GPU resources...",
+            "GPU resources allocated.",
+            f"Selected model: {selected_model_file} for domain: {domain}",
+            "Loading dataset...",
+            "Dataset loaded. Found 15,000 samples.",
+            "Preprocessing and augmenting data...",
+        ]
+        for log in start_logs:
+            yield f"data: {{\"log\": \"{log}\"}}\n\n"
+            time.sleep(random.uniform(0.1, 0.3))
+
+        # 2. Middle (Epoch) Logs
+        middle_logs = [log for log in TRAINING_LOGS if "Epoch" not in log and "Shutting down" not in log]
+
+        start_accuracy = random.uniform(30, 40)
+
+        # Determine final accuracy range
+        if 4 <= training_time_minutes <= 10:
+            end_accuracy = random.uniform(75, 85)
+        elif 10 < training_time_minutes <= 30:
+            end_accuracy = random.uniform(80, 90)
+        else: # 30-60 minutes
+            end_accuracy = random.uniform(85, 95)
+
+        total_steps = num_epochs + len(middle_logs)
+        time_per_step = total_seconds / total_steps if total_steps > 0 else 0
+
+        for i in range(num_epochs):
+            # Simulate gradual accuracy increase
+            current_progress = i / num_epochs
+            accuracy = start_accuracy + (end_accuracy - start_accuracy) * (current_progress + random.uniform(-0.05, 0.05))
+            accuracy = max(start_accuracy, min(end_accuracy, accuracy)) # Clamp accuracy
+
+            loss = 1.5 * (1 - (accuracy / 100)) + random.uniform(-0.1, 0.1)
+
+            epoch_log = f"Epoch {i+1}/{num_epochs} - loss: {loss:.4f} - accuracy: {accuracy/100:.4f}"
+            yield f"data: {{\"log\": \"{epoch_log}\", \"accuracy\": {accuracy:.2f}}}\n\n"
+
+            # Sprinkle in random logs
+            if i % 5 == 0 and middle_logs:
+                random_log = random.choice(middle_logs)
+                yield f"data: {{\"log\": \"{random_log}\"}}\n\n"
+                time.sleep(time_per_step / 2) # Extra delay for random logs
+
+            time.sleep(time_per_step)
+
+        # 3. Finishing Logs
+        end_logs = [
+            "Finalizing model...",
+            "Running final evaluation on test set...",
+            "Saving model to registry...",
+            "Model saved successfully.",
+            "Shutting down training process...",
+            "Releasing GPU resources."
+        ]
+        for log in end_logs:
+            yield f"data: {{\"log\": \"{log}\"}}\n\n"
+            time.sleep(random.uniform(0.2, 0.5))
+
+        # Final accuracy signal
+        yield f"data: {{\"final_accuracy\": {end_accuracy:.2f}}}\n\n"
+
+    return Response(stream_with_context(generate_logs()), mimetype='text/event-stream')
+
 
 @app.route('/api/generate_model', methods=['POST'])
 def generate_model():
