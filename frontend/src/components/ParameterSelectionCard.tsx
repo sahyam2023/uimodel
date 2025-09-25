@@ -56,14 +56,14 @@ export function ParameterSelectionCard({ parameters, onParametersChange }: Param
         <div className="space-y-2">
           <Label className="flex items-center space-x-2">
             <Target className="h-4 w-4 text-slate-600" />
-            <span>City Domain</span>
+            <span>Domain</span>
           </Label>
           <Select
             value={parameters.domain}
             onValueChange={(value) => updateParameter('domain', value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select city domain" />
+              <SelectValue placeholder="Select domain" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Oil and Gas">Oil and Gas</SelectItem>
