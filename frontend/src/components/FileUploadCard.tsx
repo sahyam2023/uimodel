@@ -63,27 +63,31 @@ export function FileUploadCard({ onUploadSuccess }: FileUploadCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="file-upload" className="text-sm font-medium">
-            Select Dataset File
-          </Label>
-          <Input
-            id="file-upload"
-            type="file"
-            accept=".csv,.json,.xml"
-            onChange={handleFileSelect}
-            className="cursor-pointer"
-          />
-        </div>
-
-        {selectedFile && (
-          <div className="flex items-center space-x-2 p-3 bg-slate-50 rounded-md">
-            <File className="h-4 w-4 text-slate-600" />
-            <span className="text-sm text-slate-700 flex-1">{selectedFile.name}</span>
-            <span className="text-xs text-slate-500">
-              {(selectedFile.size / 1024).toFixed(1)} KB
+          <Label className="text-sm font-medium">Select Dataset File</Label>
+          <div className="flex items-center justify-between p-1 border rounded-lg bg-transparent border-slate-700">
+            <span className="text-sm text-slate-400 truncate pl-3 pr-4">
+              {selectedFile ? selectedFile.name : "No file selected"}
             </span>
+            <Label
+              htmlFor="file-upload"
+              className="px-3 py-1.5 text-sm font-semibold text-white bg-indigo-600 rounded-md cursor-pointer hover:bg-indigo-500 transition-colors shrink-0"
+            >
+              Choose File
+            </Label>
+            <Input
+              id="file-upload"
+              type="file"
+              accept=".csv,.json,.xml"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </div>
-        )}
+          {selectedFile && (
+            <div className="text-xs text-slate-500 pl-1 pt-1">
+              File size: {(selectedFile.size / 1024).toFixed(1)} KB
+            </div>
+          )}
+        </div>
 
         {uploadStatus === 'success' && (
           <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-md">

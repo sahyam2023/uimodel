@@ -2,15 +2,16 @@ export interface ModelParameters {
   analyticsType: string;
   domain: string;
   modelType: string;
-  handleMissingData: boolean;
-  dataCleaning: boolean;
-  featureScaling: boolean;
+  trainingTime: number;
+  handleMissingData: string;
+  dataCleaning: string;
+  featureScaling: string;
   geoFencing: boolean;
   calculateDistance: boolean;
   learningRate: number;
   epochs: number;
   batchSize: number;
-  validationType: 'train-test' | 'k-fold';
+  validationType: 'train-test' | 'k-fold' | 'leave-one-out' | 'stratified-k-fold';
   trainTestSplit: number;
   kFolds: number;
 }

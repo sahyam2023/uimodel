@@ -2,8 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Settings, Database, Target, Map, Filter } from 'lucide-react';
+import { Settings, Database, Target, Map, Filter, Clock } from 'lucide-react';
 import { ModelParameters } from '@/types';
+import { Slider } from '@/components/ui/slider';
 
 interface ParameterSelectionCardProps {
   parameters: ModelParameters;
@@ -94,42 +95,91 @@ export function ParameterSelectionCard({ parameters, onParametersChange }: Param
           </Select>
         </div>
 
+        {/* Training Time */}
+        <div className="space-y-2">
+          <Label className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-slate-600" />
+            <span>Training Time (minutes)</span>
+          </Label>
+          <div className="flex items-center space-x-4 pt-2">
+            <Slider
+              value={[parameters.trainingTime]}
+              onValueChange={(value) => updateParameter('trainingTime', value[0])}
+              min={4}
+              max={60}
+              step={1}
+              className="flex-1"
+            />
+            <span className="font-medium text-slate-400 w-16 text-center">
+              {parameters.trainingTime} min
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 pl-1">
+            The more time you train for, the better the accuracy.
+          </p>
+        </div>
+
         {/* AI Pre-Processing */}
         <div className="space-y-3">
           <Label className="flex items-center space-x-2">
             <Filter className="h-4 w-4 text-slate-600" />
             <span>AI Pre-Processing</span>
           </Label>
-          <div className="space-y-3 pl-6">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="handle-missing-data"
-                checked={parameters.handleMissingData}
-                onCheckedChange={(checked) => updateParameter('handleMissingData', checked)}
-              />
+          <div className="space-y-4 pl-6">
+            <div className="space-y-2">
               <Label htmlFor="handle-missing-data" className="text-sm font-normal">
                 Handle Missing Data
               </Label>
+              <Select
+                value={parameters.handleMissingData}
+                onValueChange={(value) => updateParameter('handleMissingData', value)}
+              >
+                <SelectTrigger id="handle-missing-data">
+                  <SelectValue placeholder="Select method..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="impute_mean">Impute (Mean)</SelectItem>
+                  <SelectItem value="impute_median">Impute (Median)</SelectItem>
+                  <SelectItem value="drop_row">Drop Row</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="data-cleaning"
-                checked={parameters.dataCleaning}
-                onCheckedChange={(checked) => updateParameter('dataCleaning', checked)}
-              />
+            <div className="space-y-2">
               <Label htmlFor="data-cleaning" className="text-sm font-normal">
                 Data Cleaning
               </Label>
+              <Select
+                value={parameters.dataCleaning}
+                onValueChange={(value) => updateParameter('dataCleaning', value)}
+              >
+                <SelectTrigger id="data-cleaning">
+                  <SelectValue placeholder="Select method..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="remove_duplicates">Remove Duplicates</SelectItem>
+                  <SelectItem value="trim_whitespace">Trim Whitespace</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="feature-scaling"
-                checked={parameters.featureScaling}
-                onCheckedChange={(checked) => updateParameter('featureScaling', checked)}
-              />
+            <div className="space-y-2">
               <Label htmlFor="feature-scaling" className="text-sm font-normal">
                 Feature Scaling
               </Label>
+              <Select
+                value={parameters.featureScaling}
+                onValueChange={(value) => updateParameter('featureScaling', value)}
+              >
+                <SelectTrigger id="feature-scaling">
+                  <SelectValue placeholder="Select method..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="standard_scaler">Standard Scaler</SelectItem>
+                  <SelectItem value="min_max_scaler">Min-Max Scaler</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
