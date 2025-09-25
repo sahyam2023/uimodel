@@ -1,21 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, File, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Loader as Loader2, Database } from 'lucide-react';
+import { Upload, File, CircleCheck, CircleAlert, Loader2, Database } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface DataIngestCardProps {
   onUploadSuccess: () => void;
+}
+
+interface DataSource {
+  id: string;
+  name: string;
+  status: 'connected' | 'disconnected';
+  color: string;
+  isConnecting?: boolean;
+  isExternalConnected?: boolean;
 }
 
 export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const { toast } = useToast();
+  const [dataSources, setDataSources] = useState<DataSource[]>([]);
+
+  useEffect(() => {
+    const savedDataSources = sessionStorage.getItem('dataSources');
+    if (savedDataSources) {
+      const parsed = JSON.parse(savedDataSources);
+      setDataSources(
+        parsed.map((ds: any) => ({
+          ...ds,
+          isConnecting: false,
+          isExternalConnected: false,
+        }))
+      );
+    }
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -32,21 +56,45 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
     try {
       const response = await apiService.uploadFile(selectedFile);
       setUploadStatus('success');
-      toast({
-        title: "Upload Successful",
-        description: response.message,
-      });
+      toast.success("Upload Successful", { description: response.message });
       onUploadSuccess();
     } catch (error) {
       setUploadStatus('error');
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload file. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Upload Failed", { description: "Failed to upload file. Please try again." });
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleExternalDataClick = (sourceId: string) => {
+    const source = dataSources.find(ds => ds.id === sourceId);
+    if (!source) return;
+
+    if (source.status !== 'connected') {
+      toast.warning("Please connect to the data source first", {
+        description: "You can connect to your data sources in the Data Sources page.",
+      });
+      return;
+    }
+
+    setDataSources(prev =>
+      prev.map(ds =>
+        ds.id === sourceId ? { ...ds, isConnecting: true } : ds
+      )
+    );
+
+    setTimeout(() => {
+      setDataSources(prev =>
+        prev.map(ds =>
+          ds.id === sourceId
+            ? { ...ds, isConnecting: false, isExternalConnected: true }
+            : ds
+        )
+      );
+      toast.success(`Connected to ${source.name}`, {
+        description: "Your data can now be uploaded to this external source.",
+      });
+    }, 2500);
   };
 
   return (
@@ -72,7 +120,7 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
               type="file"
               accept=".csv,.json,.xml"
               onChange={handleFileSelect}
-              className="cursor-pointer bg-slate-800 border-slate-700 text-white"
+              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-4 file:py-2 file:mr-4 file:rounded-md"
             />
           </div>
 
@@ -88,14 +136,14 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
 
           {uploadStatus === 'success' && (
             <div className="flex items-center space-x-2 p-3 bg-green-900/20 border border-green-800 rounded-md">
-              <CheckCircle className="h-4 w-4 text-green-400" />
+              <CircleCheck className="h-4 w-4 text-green-400" />
               <span className="text-sm text-green-300">File uploaded successfully!</span>
             </div>
           )}
 
           {uploadStatus === 'error' && (
             <div className="flex items-center space-x-2 p-3 bg-red-900/20 border border-red-800 rounded-md">
-              <AlertCircle className="h-4 w-4 text-red-400" />
+              <CircleAlert className="h-4 w-4 text-red-400" />
               <span className="text-sm text-red-300">Upload failed. Please try again.</span>
             </div>
           )}
@@ -106,15 +154,9 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
             className="w-full bg-indigo-600 hover:bg-indigo-700"
           >
             {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
-              </>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
             ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload File
-              </>
+              <><Upload className="mr-2 h-4 w-4" /> Upload File</>
             )}
           </Button>
         </div>
@@ -122,21 +164,32 @@ export function DataIngestCard({ onUploadSuccess }: DataIngestCardProps) {
         {/* Data Source Connections */}
         <div className="space-y-3">
           <Label className="text-sm font-medium text-slate-300">
-            Upload to external data sources(optional)
+            Upload to external data sources (optional)
           </Label>
           <div className="grid grid-cols-3 gap-3">
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto bg-slate-800 border-slate-700 hover:bg-slate-700">
-              <Database className="h-6 w-6 text-blue-400 mb-2" />
-              <span className="text-xs text-slate-300">PostgreSQL</span>
-            </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto bg-slate-800 border-slate-700 hover:bg-slate-700">
-              <Database className="h-6 w-6 text-orange-400 mb-2" />
-              <span className="text-xs text-slate-300">S3 Bucket</span>
-            </Button>
-            <Button variant="outline" className="flex flex-col items-center p-4 h-auto bg-slate-800 border-slate-700 hover:bg-slate-700">
-              <Database className="h-6 w-6 text-cyan-400 mb-2" />
-              <span className="text-xs text-slate-300">Snowflake</span>
-            </Button>
+            {dataSources.map(source => (
+              <Button
+                key={source.id}
+                variant="outline"
+                className={cn(
+                  "flex flex-col items-center justify-center p-4 h-auto bg-slate-800 border-slate-700 hover:bg-slate-700 transition-all",
+                  source.isExternalConnected && "bg-green-500/10 border-green-500/30 hover:bg-green-500/20"
+                )}
+                onClick={() => handleExternalDataClick(source.id)}
+                disabled={source.isConnecting || source.isExternalConnected}
+              >
+                {source.isConnecting ? (
+                  <Loader2 className="h-6 w-6 text-slate-400 animate-spin mb-2" />
+                ) : source.isExternalConnected ? (
+                  <CircleCheck className="h-6 w-6 text-green-400 mb-2" />
+                ) : (
+                  <Database className={cn("h-6 w-6 mb-2", source.color)} />
+                )}
+                <span className={cn("text-xs text-slate-300", source.isExternalConnected && "text-green-300")}>
+                  {source.isConnecting ? 'Connecting...' : source.isExternalConnected ? 'Connected' : source.name}
+                </span>
+              </Button>
+            ))}
           </div>
         </div>
       </CardContent>

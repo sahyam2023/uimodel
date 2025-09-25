@@ -47,7 +47,11 @@ export function DataSources() {
     try {
       const savedDataSources = sessionStorage.getItem('dataSources');
       if (savedDataSources) {
-        return JSON.parse(savedDataSources);
+        // Re-assign the icon component after parsing
+        return JSON.parse(savedDataSources).map((source: any) => ({
+          ...source,
+          icon: Database,
+        }));
       }
     } catch (error) {
       console.error("Failed to parse data sources from session storage", error);
