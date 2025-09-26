@@ -16,6 +16,7 @@ interface WorkspaceProps {
   isFileUploaded: boolean;
   onFileUploadSuccess: () => void;
   onResetUpload: () => void;
+  onWorkspaceReset: () => void;
   modelParameters: ModelParameters;
   onParametersChange: (params: ModelParameters) => void;
   trainingLogs: TrainingLog[];
@@ -34,6 +35,7 @@ export function Workspace({
   isFileUploaded,
   onFileUploadSuccess,
   onResetUpload,
+  onWorkspaceReset,
   modelParameters,
   onParametersChange,
   trainingLogs,
@@ -90,7 +92,12 @@ export function Workspace({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <fieldset
+          disabled={isComplete}
+          className={`lg:col-span-2 space-y-6 transition-all duration-500 ease-in-out ${
+            isComplete ? 'transform scale-95 opacity-60' : 'opacity-100 scale-100'
+          }`}
+        >
           {/* Row 1 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataIngestCard 
@@ -101,7 +108,7 @@ export function Workspace({
             <ConfigurationCard
               parameters={modelParameters}
               onParametersChange={onParametersChange}
-              isTraining={isTraining || isFinalizing}
+              isTraining={isTraining || isFinalizing || isComplete}
             />
           </div>
 
@@ -112,11 +119,11 @@ export function Workspace({
               isTraining={isTraining}
               onStartTraining={handleStartTrainingClick}
               onStopTraining={onStopTraining}
-              estimatedTrainingTime={estimatedTrainingTime}
+              remainingTime={remainingTime}
               isFinalizing={isFinalizing}
             />
           </div>
-        </div>
+        </fieldset>
 
         {/* Sidebar */}
         <div className={`lg:col-span-1 transition-opacity duration-300 ${showSidebar ? 'opacity-100' : 'opacity-0'}`}>
@@ -133,7 +140,7 @@ export function Workspace({
               estimatedDuration={estimatedTrainingTime}
             />
           ) : isComplete && generationResult ? (
-            <DeploymentCard result={generationResult} />
+            <DeploymentCard result={generationResult} onWorkspaceReset={onWorkspaceReset} />
           ) : null}
         </div>
       </div>

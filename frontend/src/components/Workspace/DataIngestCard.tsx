@@ -33,16 +33,16 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload 
   useEffect(() => {
     const savedDataSources = sessionStorage.getItem('dataSources');
     if (savedDataSources) {
-      const parsed = JSON.parse(savedDataSources);
-      setDataSources(
-        parsed.map((ds: any) => ({
-          ...ds,
-          isConnecting: false,
-          isExternalConnected: false,
-        }))
-      );
+      setDataSources(JSON.parse(savedDataSources));
     }
   }, []);
+
+  // Persist dataSources state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (dataSources.length > 0) {
+      sessionStorage.setItem('dataSources', JSON.stringify(dataSources));
+    }
+  }, [dataSources]);
 
   useEffect(() => {
     // If a file was uploaded in a previous session, reflect it.
@@ -51,9 +51,13 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload 
         if (storedFile) {
             try {
                 const fileInfo = JSON.parse(storedFile);
-                // Create a mock File object for display purposes
-                const mockFile = new File([], fileInfo.name, { type: fileInfo.type });
-                Object.defineProperty(mockFile, 'size', { value: fileInfo.size });
+                // Create a mock File-like object for display purposes
+                const mockFile = {
+                    name: fileInfo.name,
+                    type: fileInfo.type,
+                    size: fileInfo.size,
+                    // Add any other properties you need to display
+                } as File;
                 setSelectedFile(mockFile);
             } catch (e) {
                 console.error("Failed to parse stored file info:", e);

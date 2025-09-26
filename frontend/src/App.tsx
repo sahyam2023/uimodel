@@ -148,11 +148,31 @@ function App() {
   };
 
   const handleFileUploadSuccess = () => setIsFileUploaded(true);
-
+  
   const handleResetUpload = () => {
     setIsFileUploaded(false);
     sessionStorage.removeItem('selectedFile');
     toast.info('File cleared', { description: 'You can now upload a new file.' });
+  };
+
+  const handleWorkspaceReset = () => {
+    setIsTraining(false);
+    setIsComplete(false);
+    setGenerationResult(null);
+    setIsFileUploaded(false);
+    setModelParameters(initialModelParameters);
+    setTrainingLogs([]);
+    setRemainingTime(0);
+    setCurrentEpoch(0);
+    setAccuracyData([]);
+
+    // Also clear items managed by child components
+    sessionStorage.removeItem('selectedFile');
+    sessionStorage.removeItem('dataSources');
+
+    toast.success('Workspace Reset', {
+      description: 'The workspace has been cleared. You can start a new session.',
+    });
   };
 
   useEffect(() => {
@@ -185,6 +205,7 @@ function App() {
                 isFileUploaded={isFileUploaded}
                 onFileUploadSuccess={handleFileUploadSuccess}
                 onResetUpload={handleResetUpload}
+                onWorkspaceReset={handleWorkspaceReset}
                 modelParameters={modelParameters}
                 onParametersChange={setModelParameters}
                 trainingLogs={trainingLogs}
