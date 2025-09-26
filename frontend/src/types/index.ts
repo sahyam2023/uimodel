@@ -85,3 +85,26 @@ export interface ChartData {
   time: number;
   value: number;
 }
+
+export interface Server {
+  id: number;
+  ip: string;
+  status: 'online' | 'offline';
+  cpuTemp: number;
+  gpuTemp: number;
+  memoryUsage: number;
+  diskUsage: number;
+  cpuHistory: { value: number }[];
+  gpuHistory: { value: number }[];
+  processes: string[];
+}
+
+export interface MetricChartProps {
+  data: { value: number }[];
+  color: string;
+}
+
+export interface TemperatureDisplayProps {
+  label: string;
+  temp: number;
+}

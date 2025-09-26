@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Activity, TrendingUp, Cpu, BarChart2, Loader2 } from 'lucide-react';
@@ -56,12 +56,21 @@ export function LiveMonitoringSidebar({
     estimatedDuration
 }: LiveMonitoringSidebarProps) {
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const [featuresGraphData, setFeaturesGraphData] = useState<ChartData[]>([]);
+  const [computationalGraphData, setComputationalGraphData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [logs]);
+
+  useEffect(() => {
+    if (accuracyData && accuracyData.length > 0) {
+      setFeaturesGraphData(accuracyData.map(d => ({...d, value: d.value * (0.5 + Math.random() * 0.2)})));
+      setComputationalGraphData(accuracyData.map(d => ({...d, value: 70 + Math.sin(d.time / 10) * 15 + Math.random() * 5})));
+    }
+  }, [accuracyData]);
   
   const progressPercentage = estimatedDuration > 0 ? ((estimatedDuration - remainingTime) / estimatedDuration) * 100 : 0;
 
@@ -157,7 +166,7 @@ export function LiveMonitoringSidebar({
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={150}>
-                  <LineChart data={accuracyData.map(d => ({...d, value: d.value * (0.5 + Math.random() * 0.2)}))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                  <LineChart data={featuresGraphData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis dataKey="time" stroke="#64748b" fontSize={10} name="Time" unit="s"/>
                     <YAxis stroke="#64748b" fontSize={10} domain={[0, 1]} />
@@ -181,7 +190,7 @@ export function LiveMonitoringSidebar({
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={150}>
-                   <AreaChart data={accuracyData.map(d => ({...d, value: 70 + Math.sin(d.time / 10) * 15 + Math.random() * 5}))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                   <AreaChart data={computationalGraphData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis dataKey="time" stroke="#64748b" fontSize={10} name="Time" unit="s" />
                     <YAxis stroke="#64748b" fontSize={10} domain={[0, 100]} unit="%"/>
