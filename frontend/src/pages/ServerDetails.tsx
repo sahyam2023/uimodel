@@ -117,8 +117,8 @@ const sampleProcesses = [
 ];
   
 const getRandomProcesses = () => {
-    const shuffled = sampleProcesses.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, Math.floor(Math.random() * 3) + 3);
+    const shuffled = [...sampleProcesses].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
 };
 
 const updateServerData = (servers: Server[]): Server[] => {
@@ -156,7 +156,7 @@ const updateServerData = (servers: Server[]): Server[] => {
     });
 };
 
-const ServerIcon = ({ status }: { status: 'online' | 'offline' }) => (
+const ServerStatusIcon = ({ status }: { status: 'online' | 'offline' }) => (
     <div className="relative">
       <ServerIcon
         className={cn(
@@ -207,7 +207,7 @@ const ServerIcon = ({ status }: { status: 'online' | 'offline' }) => (
         <CardHeader>
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
-              <ServerIcon status={server.status} />
+              <ServerStatusIcon status={server.status} />
               <div>
                 <CardTitle className="text-white">Server {server.id}</CardTitle>
                 <p className={cn("text-sm", server.status === 'online' ? 'text-green-400' : 'text-slate-500')}>
@@ -255,11 +255,19 @@ const ServerDetails = () => {
     const [serversData, setServersData] = useState(initialServersData);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-          setServersData(updateServerData);
-        }, 2000); 
+        let timeoutId: NodeJS.Timeout;
     
-        return () => clearInterval(interval);
+        const scheduleUpdate = () => {
+          const delay = Math.random() * 2000 + 1000;
+          timeoutId = setTimeout(() => {
+            setServersData(updateServerData);
+            scheduleUpdate();
+          }, delay);
+        };
+    
+        scheduleUpdate();
+    
+        return () => clearTimeout(timeoutId);
       }, []);
 
     return (
