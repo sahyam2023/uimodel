@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, File, CircleCheck, CircleAlert, Loader2, Database } from 'lucide-react';
+import { Upload, File, CircleCheck, CircleAlert, Loader2, Database, X } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { usePersistentState } from '@/hooks/usePersistentState';
 
 interface DataIngestCardProps {
   onUploadSuccess: () => void;
   isFileUploaded: boolean;
+  onResetUpload: () => void;
 }
 
 interface DataSource {
@@ -23,31 +23,59 @@ interface DataSource {
   isExternalConnected?: boolean;
 }
 
-export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCardProps) {
-  const [selectedFile, setSelectedFile] = usePersistentState<File | null>('selectedFile', null);
+export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload }: DataIngestCardProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFailed, setUploadFailed] = useState(false);
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedDataSources = sessionStorage.getItem('dataSources');
     if (savedDataSources) {
-      const parsed = JSON.parse(savedDataSources);
-      setDataSources(
-        parsed.map((ds: any) => ({
-          ...ds,
-          isConnecting: false,
-          isExternalConnected: false,
-        }))
-      );
+      setDataSources(JSON.parse(savedDataSources));
     }
   }, []);
+
+  // Persist dataSources state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (dataSources.length > 0) {
+      sessionStorage.setItem('dataSources', JSON.stringify(dataSources));
+    }
+  }, [dataSources]);
+
+  useEffect(() => {
+    // If a file was uploaded in a previous session, reflect it.
+    if (isFileUploaded && !selectedFile) {
+        const storedFile = sessionStorage.getItem('selectedFile');
+        if (storedFile) {
+            try {
+                const fileInfo = JSON.parse(storedFile);
+                // Create a mock File-like object for display purposes
+                const mockFile = {
+                    name: fileInfo.name,
+                    type: fileInfo.type,
+                    size: fileInfo.size,
+                    // Add any other properties you need to display
+                } as File;
+                setSelectedFile(mockFile);
+            } catch (e) {
+                console.error("Failed to parse stored file info:", e);
+            }
+        }
+    } else if (!isFileUploaded && selectedFile) {
+        // Clear the file if the upload state is reset
+        handleClearFile();
+    }
+  }, [isFileUploaded]);
   
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setUploadFailed(false);
+      // Store file metadata for session persistence
+      sessionStorage.setItem('selectedFile', JSON.stringify({ name: file.name, type: file.type, size: file.size }));
     }
   };
 
@@ -66,6 +94,15 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCa
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    setUploadFailed(false);
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+    onResetUpload();
   };
 
   const handleExternalDataClick = (sourceId: string) => {
@@ -119,10 +156,11 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCa
             <Input
               id="file-upload"
               type="file"
+              ref={fileInputRef}
               accept=".csv,.json,.xml"
               onChange={handleFileSelect}
               className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-3 file:py-1.5 file:mr-3 file:rounded-md text-sm"
-              disabled={isFileUploaded}
+              disabled={isFileUploaded || isUploading}
             />
           </div>
 
@@ -137,9 +175,14 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCa
           )}
 
           {isFileUploaded && selectedFile && (
-            <div className="flex items-center space-x-2 p-3 bg-green-900/20 border border-green-800 rounded-md">
-              <CircleCheck className="h-4 w-4 text-green-400" />
-              <span className="text-sm text-green-300">File "{selectedFile.name}" uploaded successfully!</span>
+            <div className="flex items-center justify-between space-x-2 p-3 bg-green-900/20 border border-green-800 rounded-md">
+                <div className="flex items-center space-x-2">
+                    <CircleCheck className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-green-300">"{selectedFile.name}" uploaded!</span>
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-white" onClick={handleClearFile}>
+                    <X className="h-4 w-4" />
+                </Button>
             </div>
           )}
 
@@ -150,17 +193,19 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCa
             </div>
           )}
 
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading || isFileUploaded}
-            className="w-full bg-indigo-600 hover:bg-indigo-700"
-          >
-            {isUploading ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
-            ) : (
-              <><Upload className="mr-2 h-4 w-4" /> Upload File</>
-            )}
-          </Button>
+          {!isFileUploaded && (
+            <Button
+              onClick={handleUpload}
+              disabled={!selectedFile || isUploading || isFileUploaded}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+            >
+              {isUploading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+              ) : (
+                <><Upload className="mr-2 h-4 w-4" /> Upload File</>
+              )}
+            </Button>
+          )}
         </div>
         
         <div className="space-y-3">
@@ -184,7 +229,7 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded }: DataIngestCa
                 ) : source.isExternalConnected ? (
                   <CircleCheck className="h-6 w-6 text-green-400 mb-2" />
                 ) : (
-                  <Database className={cn("h-6 w-6 mb-2", source.color)} />
+                  <Database className={cn("h-6 w-6 mb-2", source.color || 'text-slate-400')} />
                 )}
                 <span className={cn("text-xs text-slate-300", source.isExternalConnected && "text-green-300")}>
                   {source.isConnecting ? 'Connecting...' : source.isExternalConnected ? 'Connected' : source.name}

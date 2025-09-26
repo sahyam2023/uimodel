@@ -37,9 +37,12 @@ export function generateLog(
       break;
     case 'epoch':
       level = 'epoch';
-      const loss = (Math.random() * 0.5 + 0.1).toFixed(4);
-      const accuracy = (70 + Math.random() * 25).toFixed(2);
-      message = `Epoch ${epoch}/${params?.epochs} - Loss: ${loss}, Accuracy: ${accuracy}%`;
+      // Make log values more realistic based on progress
+      const progress = epoch && params?.epochs ? epoch / params.epochs : Math.random();
+      const baseAccuracy = 60 + progress * 35;
+      const accuracy = baseAccuracy + (Math.random() - 0.5) * 5;
+      const loss = 0.8 * Math.exp(-progress * 3) + (Math.random() * 0.1);
+      message = `Epoch ${epoch}/${params?.epochs} - Loss: ${loss.toFixed(4)}, Accuracy: ${accuracy.toFixed(2)}%`;
       break;
     case 'end':
       level = 'system';
@@ -50,33 +53,46 @@ export function generateLog(
   return { timestamp, level, message };
 }
 
+// Sigmoid-like function for more realistic curves
+const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
+
 export function generateChartData(
   elapsedTime: number, 
   totalDuration: number, 
   totalEpochs: number,
   type: 'accuracy' | 'loss' | 'utilization'
 ): ChartData {
-    const progress = elapsedTime / totalDuration;
+    const progress = totalDuration > 0 ? elapsedTime / totalDuration : 0;
     let value = 0;
 
     switch(type) {
         case 'accuracy':
-            // Accuracy starts low and increases, with some noise
-            value = 65 + (progress * 30) + (Math.random() - 0.5) * 5;
-            if(progress > 0.9) value += Math.random() * 5; // final boost
+            // S-curve: starts slow, accelerates, then plateaus
+            const scaledProgress = (progress - 0.5) * 12; // Scale progress for sigmoid
+            const baseAccuracy = 65 + sigmoid(scaledProgress) * 30;
+            const noise = (Math.random() - 0.5) * (5 - progress * 4); // Noise decreases over time
+            value = baseAccuracy + noise;
+            if(progress > 0.95) value += Math.random() * 2; // Final small boost
             break;
         case 'loss':
-            // Loss starts high and decreases
-            value = 0.8 - (progress * 0.7) + (Math.random() - 0.5) * 0.1;
+            // Exponential decay: starts high, drops quickly, then levels off
+            const baseLoss = 0.8 * Math.exp(-progress * 5);
+            const lossNoise = (Math.random() - 0.3) * 0.1 * (1 - progress); // Noise decreases
+            value = baseLoss + lossNoise;
             break;
         case 'utilization':
-            // Simulates fluctuating resource usage
-            value = 70 + Math.sin(elapsedTime / 10) * 15 + Math.random() * 5;
+            // More erratic resource usage
+            const baseUtilization = 75;
+            const cyclicalVariation = Math.sin(elapsedTime / 15) * 15; // Slower, wider cycle
+            const randomSpikes = (Math.random() > 0.95) ? Math.random() * 10 : 0; // Occasional spikes
+            const randomDips = (Math.random() > 0.98) ? Math.random() * -15 : 0; // Occasional dips
+            value = baseUtilization + cyclicalVariation + randomSpikes + randomDips + (Math.random() - 0.5) * 4;
             break;
     }
     
     return {
         time: elapsedTime,
-        value: Math.max(0, Math.min(100, parseFloat(value.toFixed(2)))), // Clamp between 0 and 100
+        // Clamp values to a sensible range
+        value: Math.max(0, Math.min(100, parseFloat(value.toFixed(2)))),
     };
 }

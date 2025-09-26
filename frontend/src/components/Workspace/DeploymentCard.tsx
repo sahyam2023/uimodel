@@ -4,22 +4,22 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Download, Play, CircleCheck as CheckCircle, Loader as Loader2, Rocket, Target } from 'lucide-react';
+import { Download, Play, CircleCheck as CheckCircle, Loader as Loader2, Rocket, Target, RefreshCw } from 'lucide-react';
 import { GenerationResult, PredictionResult } from '@/types';
 import { apiService } from '@/services/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface DeploymentCardProps {
   result: GenerationResult;
+  onWorkspaceReset: () => void;
 }
 
-export function DeploymentCard({ result }: DeploymentCardProps) {
+export function DeploymentCard({ result, onWorkspaceReset }: DeploymentCardProps) {
   const [predictionInput, setPredictionInput] = useState('{"temperature": 25, "humidity": 60, "traffic_density": "high"}');
   const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
   const [isTestingPrediction, setIsTestingPrediction] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isDeployed, setIsDeployed] = useState(false);
-  const { toast } = useToast();
 
   const handleDownload = () => {
     const downloadUrl = apiService.getDownloadUrl(result.modelName);
@@ -28,12 +28,11 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
 
   const handleDeploy = () => {
     setIsDeploying(true);
-    const delay = Math.random() * (20 - 5) + 5; // Random delay between 5 and 20 seconds
+    const delay = Math.random() * (10 - 3) + 3; // Random delay between 3 and 10 seconds
     setTimeout(() => {
       setIsDeploying(false);
       setIsDeployed(true);
-      toast({
-        title: "Deployment Successful",
+      toast.success("Deployment Successful", {
         description: "Your model has been deployed to production.",
       });
     }, delay * 1000);
@@ -41,19 +40,17 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
 
   const handleTestPrediction = async () => {
     setIsTestingPrediction(true);
+    setPredictionResult(null);
     try {
       const inputData = JSON.parse(predictionInput);
       const response = await apiService.predict(inputData);
       setPredictionResult(response);
-      toast({
-        title: "Prediction Successful",
+      toast.success("Prediction Successful", {
         description: "Model prediction completed successfully!",
       });
     } catch (error) {
-      toast({
-        title: "Prediction Failed",
+      toast.error("Prediction Failed", {
         description: "Failed to run prediction. Please check your input format.",
-        variant: "destructive",
       });
     } finally {
       setIsTestingPrediction(false);
@@ -75,7 +72,7 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Performance Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 bg-slate-800 rounded-lg text-center">
               <p className="text-sm text-slate-400">Accuracy</p>
               <p className="text-xl font-bold text-green-400">{result.accuracy}%</p>
@@ -98,13 +95,13 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-slate-300">Model Name</Label>
-              <div className="p-3 bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-800 rounded-lg break-all">
                 <p className="text-white font-mono text-sm">{result.modelName}</p>
               </div>
             </div>
             <div className="space-y-2">
               <Label className="text-slate-300">API Endpoint</Label>
-              <div className="p-3 bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-800 rounded-lg break-all">
                 <p className="text-white font-mono text-sm">{result.apiEndpoint}</p>
               </div>
             </div>
@@ -123,20 +120,11 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
               disabled={isDeploying || isDeployed}
             >
               {isDeploying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deploying...
-                </>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deploying...</>
               ) : isDeployed ? (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4 text-green-400" />
-                  Deployed to Production
-                </>
+                <><CheckCircle className="mr-2 h-4 w-4 text-green-400" /> Deployed</>
               ) : (
-                <>
-                  <Rocket className="mr-2 h-4 w-4" />
-                  Deploy to Production
-                </>
+                <><Rocket className="mr-2 h-4 w-4" /> Deploy to Production</>
               )}
             </Button>
           </div>
@@ -194,8 +182,8 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
 {JSON.stringify(predictionResult, null, 2)}
                 </pre>
               </div>
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-green-600">
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <Badge className="bg-green-600 hover:bg-green-700">
                   Risk Score: {predictionResult.prediction.riskScore}
                 </Badge>
                 <Badge variant="outline" className="border-slate-600 text-slate-300">
@@ -209,6 +197,25 @@ export function DeploymentCard({ result }: DeploymentCardProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Workspace */}
+       <Card className="bg-slate-900 border-slate-800">
+         <CardHeader>
+           <CardTitle className="flex items-center space-x-2 text-white">
+             <RefreshCw className="h-5 w-5 text-indigo-400" />
+             <span>Start Over</span>
+           </CardTitle>
+           <CardDescription className="text-slate-400">
+                Reset the entire workspace to start a new training session.
+           </CardDescription>
+         </CardHeader>
+         <CardContent>
+           <Button onClick={onWorkspaceReset} className="w-full bg-amber-600 hover:bg-amber-700">
+             <RefreshCw className="mr-2 h-4 w-4" />
+             Reset Workspace & Start New Session
+           </Button>
+         </CardContent>
+       </Card>
     </div>
   );
 }

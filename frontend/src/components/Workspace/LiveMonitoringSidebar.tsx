@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Activity, TrendingUp, Cpu, BarChart2 } from 'lucide-react';
+import { Activity, TrendingUp, Cpu, BarChart2, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TrainingLog, ChartData } from '@/types';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 interface LiveMonitoringSidebarProps {
   isVisible: boolean;
   isTraining: boolean;
+  isFinalizing: boolean;
   logs: TrainingLog[];
   remainingTime: number;
   currentEpoch: number;
@@ -35,9 +36,9 @@ const LOG_LEVEL_COLORS = {
 
 function StatsCard({ title, value, subValue }: { title: string; value: string; subValue: string }) {
     return (
-        <div className="bg-slate-800/50 p-3 rounded-lg text-center">
-            <p className="text-xs text-slate-400">{title}</p>
-            <p className="text-xl font-bold text-white">{value}</p>
+        <div className="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-between text-center h-24">
+            <p className="text-xs text-slate-400 font-medium">{title}</p>
+            <p className="text-2xl font-bold text-white leading-none">{value}</p>
             <p className="text-xs text-slate-500">{subValue}</p>
         </div>
     );
@@ -46,6 +47,7 @@ function StatsCard({ title, value, subValue }: { title: string; value: string; s
 export function LiveMonitoringSidebar({ 
     isVisible, 
     isTraining,
+    isFinalizing,
     logs,
     remainingTime,
     currentEpoch,
@@ -65,28 +67,36 @@ export function LiveMonitoringSidebar({
 
   if (!isVisible) return null;
 
+  const lastAccuracy = accuracyData.at(-1)?.value;
+
   return (
-    <div className={cn("fixed right-0 top-16 h-[calc(100vh-4rem)] w-[26rem] bg-slate-900 border-l border-slate-800 shadow-xl z-30 transform transition-transform duration-300 ease-in-out",
-        isVisible ? 'translate-x-0' : 'translate-x-full'
-    )}>
+    <div className={cn("h-full bg-slate-900/80 backdrop-blur-sm border-l border-slate-800 shadow-xl z-30")}>
       <ScrollArea className="h-full p-4">
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
-            <Activity className="h-5 w-5 text-indigo-400" />
-            <h3 className="text-lg font-semibold text-white">Live Training Monitor</h3>
+            {isFinalizing ? (
+              <Loader2 className="h-5 w-5 text-indigo-400 animate-spin" />
+            ) : (
+              <Activity className="h-5 w-5 text-indigo-400" />
+            )}
+            <h3 className="text-lg font-semibold text-white">
+              {isFinalizing ? 'Finalizing Model...' : 'Live Training Monitor'}
+            </h3>
           </div>
 
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-300">Training Progress</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-300">
+                {isFinalizing ? 'Finalizing...' : 'Training Progress'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                    <StatsCard title="Time Remaining" value={formatTime(remainingTime)} subValue="Est." />
+                    <StatsCard title="Time Remaining" value={isFinalizing ? '00:00' : formatTime(remainingTime)} subValue={isFinalizing ? "Please wait" : "Est."} />
                     <StatsCard title="Current Epoch" value={`${currentEpoch}`} subValue={`/ ${totalEpochs}`} />
-                    <StatsCard title="Accuracy" value={`${accuracyData.at(-1)?.value.toFixed(2) || '0.00'}%`} subValue="Current" />
+                    <StatsCard title="Accuracy" value={`${lastAccuracy ? lastAccuracy.toFixed(2) : '0.00'}%`} subValue="Current" />
                 </div>
-                <Progress value={progressPercentage} className="h-2" />
+                <Progress value={isFinalizing ? 100 : progressPercentage} className="h-2" />
             </CardContent>
           </Card>
 
