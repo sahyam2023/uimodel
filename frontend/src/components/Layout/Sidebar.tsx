@@ -12,7 +12,8 @@ import {
   Brain,
   Zap,
   Server,
-  Loader2
+  Loader2,
+  Key
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Model Registry', href: '/registry', icon: Archive },
   { name: 'Data Sources', href: '/data', icon: Database },
   { name: 'Server Details', href: '/servers', icon: Server },
+  { name: 'API Keys', href: '/api-keys', icon: Key },
 ];
 
 interface SidebarProps {

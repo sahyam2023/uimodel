@@ -55,8 +55,8 @@ export function ConfigurationCard({ parameters, onParametersChange, isTraining }
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
                       <SelectItem value="Predictive Analytics">Predictive Analytics</SelectItem>
-                      <SelectItem value="Complex Event Processing">Complex Event Processing</SelectItem>
                       <SelectItem value="Sentiment Analytics">Sentiment Analytics</SelectItem>
+                      <SelectItem value="Complex Event Processing">Complex Event Processing</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -148,6 +148,32 @@ export function ConfigurationCard({ parameters, onParametersChange, isTraining }
                     />
                     <Label htmlFor="feature-scaling" className="text-sm text-slate-300">
                       Feature Scaling
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-300">Geo-Spatial Analytics</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="enable-geo-fencing"
+                      checked={!!parameters.geoFencing}
+                      onCheckedChange={(checked) => updateParameter('geoFencing', checked === true)}
+                    />
+                    <Label htmlFor="enable-geo-fencing" className="text-sm text-slate-300">
+                      Enable Geo-Fencing Alerts
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="calculate-distance"
+                      checked={!!parameters.calculateDistance}
+                      onCheckedChange={(checked) => updateParameter('calculateDistance', checked === true)}
+                    />
+                    <Label htmlFor="calculate-distance" className="text-sm text-slate-300">
+                      Calculate Distance Travelled
                     </Label>
                   </div>
                 </div>
