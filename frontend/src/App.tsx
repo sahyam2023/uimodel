@@ -60,7 +60,7 @@ function App() {
       const getModelNameByDomain = (d: string): string => {
         switch (d) {
             case 'City': return 'City.onnx';
-            case 'Oil and Gas': return 'OilandGas.pkl';
+            case 'Oil and Gas': return 'OilandGas.onnx';
             case 'Traffic': return 'Traffic.onnx';
             case 'Airports': return 'Airports.onnx';
             default: return 'GenericModel.pkl';

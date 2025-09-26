@@ -27,21 +27,23 @@ api_keys_db = [
         "name": "Default Key",
         "key": "sk_...aBc1",
         "status": "Active",
-        "createdAt": time.time()
+        "createdAt": 1727289582,
+        "permissions": {
+            "read:projects": True, "write:projects": True, "delete:projects": False,
+            "read:training_jobs": True, "execute:training_jobs": True,
+            "read:models": True, "write:models": True, "delete:models": False, "deploy:models": False,
+            "read:datasources": True, "write:datasources": False, "delete:datasources": False,
+            "execute:predictions": True,
+            "read:users": False, "write:users": False, "read:billing": False, "admin:webhooks": False
+        }
     },
     {
         "id": "sk-2",
         "name": "Marketing API Key",
         "key": "sk_...dEf2",
         "status": "Active",
-        "createdAt": time.time() - 86400 * 7 # 7 days ago
-    },
-    {
-        "id": "sk-3",
-        "name": "Old Key",
-        "key": "sk_...gHi3",
-        "status": "Inactive",
-        "createdAt": time.time() - 86400 * 30 # 30 days ago
+        "createdAt": 1726684782,
+        "permissions": { "read:projects": True, "execute:predictions": True }
     }
 ]
 
@@ -79,22 +81,64 @@ def get_project(project_id):
 
 @app.route('/api/keys', methods=['GET'])
 def get_api_keys():
-    """Returns a list of all API keys."""
-    return jsonify(api_keys_db)
+    """Returns a list of all API keys, excluding the full key for security."""
+    # Return a "short" version of the key
+    censored_keys = []
+    for key in api_keys_db:
+        censored_key = key.copy()
+        censored_key['key'] = f"{key['key'][:5]}...{key['key'][-4:]}"
+        censored_keys.append(censored_key)
+    return jsonify(censored_keys)
 
 @app.route('/api/keys', methods=['POST'])
 def create_api_key():
     """Creates a new API key and adds it to the list."""
+    data = request.json
+    name = data.get('name')
+    permissions = data.get('permissions', {})
+
+    if not name:
+        return jsonify({'error': 'Key name is required'}), 400
+
     new_key_id = f"sk-{len(api_keys_db) + 1}"
+    # Generate a secure, random 64-character key
+    full_key = f"sk_{uuid.uuid4().hex}{uuid.uuid4().hex}"
+
     new_key = {
         "id": new_key_id,
-        "name": "New Key",
-        "key": f"sk_...{uuid.uuid4().hex[:4]}",
+        "name": name,
+        "key": full_key,
         "status": "Active",
-        "createdAt": time.time()
+        "createdAt": time.time(),
+        "permissions": permissions
     }
     api_keys_db.append(new_key)
+    # Return the full key this one time
     return jsonify(new_key), 201
+
+@app.route('/api/keys/<key_id>', methods=['DELETE'])
+def delete_api_key(key_id):
+    """Deletes an API key."""
+    global api_keys_db
+    key_to_delete = next((key for key in api_keys_db if key['id'] == key_id), None)
+    if key_to_delete:
+        api_keys_db = [key for key in api_keys_db if key['id'] != key_id]
+        return jsonify({'message': 'API key deleted successfully'}), 200
+    return jsonify({'error': 'API key not found'}), 404
+
+@app.route('/api/keys/<key_id>/status', methods=['PATCH'])
+def toggle_api_key_status(key_id):
+    """Toggles the status of an API key."""
+    data = request.json
+    new_status = data.get('status')
+    if new_status not in ['Active', 'Inactive']:
+        return jsonify({'error': 'Invalid status'}), 400
+
+    key_to_update = next((key for key in api_keys_db if key['id'] == key_id), None)
+    if key_to_update:
+        key_to_update['status'] = new_status
+        return jsonify(key_to_update), 200
+    return jsonify({'error': 'API key not found'}), 404
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
