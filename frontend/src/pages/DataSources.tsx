@@ -94,77 +94,23 @@ export function DataSources() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dataSources.map((source) => (
-          <Card key={source.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className={`p-3 rounded-lg ${source.bgColor}`}>
-                  <source.icon className={`h-6 w-6 ${source.color}`} />
-                </div>
-                <Badge
-                  className={
-                    source.status === 'connected'
-                      ? 'bg-green-600/80 text-white'
-                      : 'bg-slate-600/80 text-slate-300'
-                  }
-                >
-                  {source.status === 'connected' ? (
-                    <>
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Connected
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      Disconnected
-                    </>
-                  )}
-                </Badge>
-              </div>
-              <CardTitle className="text-white pt-2">{source.name}</CardTitle>
-              <CardDescription className="text-slate-400">
-                {source.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-               <div className="flex items-center justify-between text-sm mb-4">
-                  <span className="text-slate-400">Active Connections</span>
-                  <span className="text-white font-medium">{source.connections}</span>
-                </div>
-              <div className="flex space-x-2">
-                {source.status === 'connected' ? (
-                  <Button
-                    onClick={() => handleDisconnectClick(source.id)}
-                    variant="destructive"
-                    className="flex-1"
-                    size="sm"
-                  >
-                    <XCircle className="h-4 w-4 mr-1" />
-                    Disconnect
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => handleConnectClick(source.id)}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Connect
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
-                  disabled
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-8">
+        <div>
+          <h3 className="text-xl font-semibold text-white mb-4">Databases & Warehouses</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {dataSources.filter(s => s.type === 'database').map((source) => (
+              <DataSourceCard key={source.id} source={source} onConnect={handleConnectClick} onDisconnect={handleDisconnectClick} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-white mb-4">Streaming Event Sources</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {dataSources.filter(s => s.type === 'streaming').map((source) => (
+              <DataSourceCard key={source.id} source={source} onConnect={handleConnectClick} onDisconnect={handleDisconnectClick} />
+            ))}
+          </div>
+        </div>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -213,3 +159,82 @@ export function DataSources() {
     </div>
   );
 }
+
+interface DataSourceCardProps {
+  source: DataSource;
+  onConnect: (id: string) => void;
+  onDisconnect: (id: string) => void;
+}
+
+const DataSourceCard: React.FC<DataSourceCardProps> = ({ source, onConnect, onDisconnect }) => {
+  return (
+    <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className={`p-3 rounded-lg ${source.bgColor}`}>
+            <source.icon className={`h-6 w-6 ${source.color}`} />
+          </div>
+          <Badge
+            className={
+              source.status === 'connected'
+                ? 'bg-green-600/80 text-white'
+                : 'bg-slate-600/80 text-slate-300'
+            }
+          >
+            {source.status === 'connected' ? (
+              <>
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Connected
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Disconnected
+              </>
+            )}
+          </Badge>
+        </div>
+        <CardTitle className="text-white pt-2">{source.name}</CardTitle>
+        <CardDescription className="text-slate-400">
+          {source.description}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+         <div className="flex items-center justify-between text-sm mb-4">
+            <span className="text-slate-400">Active Connections</span>
+            <span className="text-white font-medium">{source.connections}</span>
+          </div>
+        <div className="flex space-x-2">
+          {source.status === 'connected' ? (
+            <Button
+              onClick={() => onDisconnect(source.id)}
+              variant="destructive"
+              className="flex-1"
+              size="sm"
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Disconnect
+            </Button>
+          ) : (
+            <Button
+              onClick={() => onConnect(source.id)}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Connect
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-slate-700 text-slate-300 hover:bg-slate-800"
+            disabled
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

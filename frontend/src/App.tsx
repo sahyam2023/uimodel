@@ -9,6 +9,7 @@ import { Workspace } from '@/pages/Workspace';
 import { Registry } from '@/pages/Registry';
 import { DataSources } from '@/pages/DataSources';
 import ServerDetails from '@/pages/ServerDetails';
+import ApiKeys from '@/pages/ApiKeys';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { apiService } from './services/api';
@@ -225,6 +226,7 @@ function App() {
           <Route path="/data" element={<DataSources />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/servers" element={<ServerDetails />} />
+          <Route path="/api-keys" element={<ApiKeys />} />
         </Routes>
         <ChatBot />
         <Toaster />

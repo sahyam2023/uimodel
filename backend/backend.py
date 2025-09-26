@@ -20,6 +20,32 @@ os.makedirs(MODELS_FOLDER, exist_ok=True)
 # In-memory database for storing project details
 projects_db = {}
 
+# In-memory database for API keys
+api_keys_db = [
+    {
+        "id": "sk-1",
+        "name": "Default Key",
+        "key": "sk_...aBc1",
+        "status": "Active",
+        "createdAt": time.time()
+    },
+    {
+        "id": "sk-2",
+        "name": "Marketing API Key",
+        "key": "sk_...dEf2",
+        "status": "Active",
+        "createdAt": time.time() - 86400 * 7 # 7 days ago
+    },
+    {
+        "id": "sk-3",
+        "name": "Old Key",
+        "key": "sk_...gHi3",
+        "status": "Inactive",
+        "createdAt": time.time() - 86400 * 30 # 30 days ago
+    }
+]
+
+
 # --- 2. API ENDPOINTS ---
 
 @app.route('/api/projects', methods=['GET'])
@@ -50,6 +76,25 @@ def get_project(project_id):
     if project:
         return jsonify(project)
     return jsonify({'error': 'Project not found'}), 404
+
+@app.route('/api/keys', methods=['GET'])
+def get_api_keys():
+    """Returns a list of all API keys."""
+    return jsonify(api_keys_db)
+
+@app.route('/api/keys', methods=['POST'])
+def create_api_key():
+    """Creates a new API key and adds it to the list."""
+    new_key_id = f"sk-{len(api_keys_db) + 1}"
+    new_key = {
+        "id": new_key_id,
+        "name": "New Key",
+        "key": f"sk_...{uuid.uuid4().hex[:4]}",
+        "status": "Active",
+        "createdAt": time.time()
+    }
+    api_keys_db.append(new_key)
+    return jsonify(new_key), 201
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
