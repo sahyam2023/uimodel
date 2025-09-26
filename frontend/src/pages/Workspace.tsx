@@ -10,6 +10,7 @@ import { ModelParameters, GenerationResult, TrainingLog, ChartData } from '@/typ
 interface WorkspaceProps {
   isTraining: boolean;
   isComplete: boolean;
+  wasManuallyStopped: boolean;
   generationResult: GenerationResult | null;
   onStartTraining: (params: ModelParameters) => void;
   onStopTraining: () => void;
@@ -29,6 +30,7 @@ interface WorkspaceProps {
 export function Workspace({
   isTraining,
   isComplete,
+  wasManuallyStopped,
   generationResult,
   onStartTraining,
   onStopTraining,
@@ -63,10 +65,10 @@ export function Workspace({
 
   useEffect(() => {
     // This effect handles the "finalizing" state
-    if (!isTraining && currentStep === 3 && !isComplete) {
+    if (!isTraining && currentStep === 3 && !isComplete && !wasManuallyStopped) {
       setIsFinalizing(true);
     }
-  }, [isTraining, currentStep, isComplete]);
+  }, [isTraining, currentStep, isComplete, wasManuallyStopped]);
 
 
   const handleStartTrainingClick = () => {

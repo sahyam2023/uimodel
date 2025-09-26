@@ -40,6 +40,7 @@ function App() {
   const [generationResult, setGenerationResult] = usePersistentState<GenerationResult | null>('generationResult', null);
   const [isFileUploaded, setIsFileUploaded] = usePersistentState('isFileUploaded', false);
   const [modelParameters, setModelParameters] = usePersistentState<ModelParameters>('modelParameters', initialModelParameters);
+  const [wasManuallyStopped, setWasManuallyStopped] = usePersistentState('wasManuallyStopped', false);
 
   const [trainingLogs, setTrainingLogs] = usePersistentState<TrainingLog[]>('trainingLogs', []);
   const [remainingTime, setRemainingTime] = usePersistentState('remainingTime', 0);
@@ -136,6 +137,7 @@ function App() {
         setAccuracyData([]);
         setIsComplete(false);
         setGenerationResult(null);
+        setWasManuallyStopped(false);
         setIsTraining(true); // This will trigger the useEffect to start the interval
         toast.info('Training Started', { description: `Model training initiated. Estimated completion in ~${params.trainingTime} minutes.` });
     }, 100);
@@ -143,6 +145,7 @@ function App() {
 
   const handleStopTraining = () => {
     setIsTraining(false); // This will trigger the useEffect to clear the interval
+    setWasManuallyStopped(true);
     setTrainingLogs(prev => [...prev, generateLog('stop')]);
     toast.warning('Training Stopped', { description: 'The training process has been halted by the user.' });
   };
@@ -165,6 +168,7 @@ function App() {
     setRemainingTime(0);
     setCurrentEpoch(0);
     setAccuracyData([]);
+    setWasManuallyStopped(false);
 
     // Also clear items managed by child components
     sessionStorage.removeItem('selectedFile');
@@ -199,6 +203,7 @@ function App() {
               <Workspace
                 isTraining={isTraining}
                 isComplete={isComplete}
+                wasManuallyStopped={wasManuallyStopped}
                 generationResult={generationResult}
                 onStartTraining={handleStartTraining}
                 onStopTraining={handleStopTraining}
