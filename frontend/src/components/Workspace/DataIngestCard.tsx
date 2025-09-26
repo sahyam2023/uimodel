@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, File, CircleCheck, CircleAlert, Loader2, Database, X } from 'lucide-react';
+import { Upload, File, CircleCheck, CircleAlert, Loader2, X } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { initialDataSources, DataSource } from '@/lib/dataSources';
 
 interface DataIngestCardProps {
   onUploadSuccess: () => void;
@@ -14,33 +15,35 @@ interface DataIngestCardProps {
   onResetUpload: () => void;
 }
 
-interface DataSource {
-  id: string;
-  name: string;
-  status: 'connected' | 'disconnected';
-  color: string;
-  isConnecting?: boolean;
-  isExternalConnected?: boolean;
-}
-
 export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload }: DataIngestCardProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFailed, setUploadFailed] = useState(false);
-  const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const savedDataSources = sessionStorage.getItem('dataSources');
-    if (savedDataSources) {
-      setDataSources(JSON.parse(savedDataSources));
+  const [dataSources, setDataSources] = useState<DataSource[]>(() => {
+    try {
+      const savedDataSources = sessionStorage.getItem('dataSources');
+      if (savedDataSources) {
+        const parsedSources: Partial<DataSource>[] = JSON.parse(savedDataSources);
+        return initialDataSources.map(initialSource => {
+          const savedSource = parsedSources.find(s => s.id === initialSource.id);
+          return savedSource ? { ...initialSource, ...savedSource } : initialSource;
+        });
+      }
+    } catch (error) {
+      console.error("Failed to parse data sources from session storage", error);
     }
-  }, []);
+    return initialDataSources;
+  });
 
   // Persist dataSources state to sessionStorage whenever it changes
   useEffect(() => {
-    if (dataSources.length > 0) {
-      sessionStorage.setItem('dataSources', JSON.stringify(dataSources));
+    try {
+        const serializableDataSources = dataSources.map(({ icon, ...rest }) => rest);
+        sessionStorage.setItem('dataSources', JSON.stringify(serializableDataSources));
+    } catch (error) {
+        console.error("Failed to save data sources to session storage", error);
     }
   }, [dataSources]);
 
@@ -208,34 +211,37 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload 
           )}
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Label className="text-sm font-medium text-slate-300">
             Upload to external data sources (optional)
           </Label>
-          <div className="grid grid-cols-3 gap-3">
-            {dataSources.map(source => (
-              <Button
-                key={source.id}
-                variant="outline"
-                className={cn(
-                  "flex flex-col items-center justify-center p-4 h-auto bg-slate-800 border-slate-700 hover:bg-slate-700 transition-all",
-                  source.isExternalConnected && "bg-green-500/10 border-green-500/30 hover:bg-green-500/20"
-                )}
-                onClick={() => handleExternalDataClick(source.id)}
-                disabled={source.isConnecting || source.isExternalConnected}
-              >
-                {source.isConnecting ? (
-                  <Loader2 className="h-6 w-6 text-slate-400 animate-spin mb-2" />
-                ) : source.isExternalConnected ? (
-                  <CircleCheck className="h-6 w-6 text-green-400 mb-2" />
-                ) : (
-                  <Database className={cn("h-6 w-6 mb-2", source.color || 'text-slate-400')} />
-                )}
-                <span className={cn("text-xs text-slate-300", source.isExternalConnected && "text-green-300")}>
-                  {source.isConnecting ? 'Connecting...' : source.isExternalConnected ? 'Connected' : source.name}
-                </span>
-              </Button>
-            ))}
+          <div className="grid grid-cols-3 gap-2">
+            {dataSources.map(source => {
+              const Icon = source.icon;
+              return (
+                <Button
+                  key={source.id}
+                  variant="outline"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-3 h-24 bg-slate-800 border-slate-700 hover:bg-slate-700 transition-all text-center",
+                    source.isExternalConnected && "bg-green-500/10 border-green-500/30 hover:bg-green-500/20"
+                  )}
+                  onClick={() => handleExternalDataClick(source.id)}
+                  disabled={source.isConnecting || source.isExternalConnected}
+                >
+                  {source.isConnecting ? (
+                    <Loader2 className="h-5 w-5 text-slate-400 animate-spin mb-1.5" />
+                  ) : source.isExternalConnected ? (
+                    <CircleCheck className="h-5 w-5 text-green-400 mb-1.5" />
+                  ) : (
+                    <Icon className={cn("h-5 w-5 mb-1.5", source.color || 'text-slate-400')} />
+                  )}
+                  <span className={cn("text-xs font-medium text-slate-300 leading-tight", source.isExternalConnected && "text-green-300")}>
+                    {source.isConnecting ? 'Connecting...' : source.isExternalConnected ? 'Connected' : source.name}
+                  </span>
+                </Button>
+              );
+            })}
           </div>
         </div>
       </CardContent>

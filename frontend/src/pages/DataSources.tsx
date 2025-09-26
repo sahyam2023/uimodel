@@ -5,53 +5,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Database, Plus, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Settings, Loader2, XCircle } from 'lucide-react';
+import { Plus, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Settings, Loader2, XCircle } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
-
-const initialDataSources = [
-  {
-    id: 'postgresql',
-    name: 'PostgreSQL',
-    description: 'Connect to PostgreSQL databases for structured data',
-    icon: Database,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-400/10',
-    status: 'disconnected',
-    connections: 0,
-  },
-  {
-    id: 'aws-s3',
-    name: 'AWS S3',
-    description: 'Access data stored in Amazon S3 buckets',
-    icon: Database,
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-400/10',
-    status: 'disconnected',
-    connections: 0,
-  },
-  {
-    id: 'snowflake',
-    name: 'Snowflake',
-    description: 'Connect to Snowflake data warehouse',
-    icon: Database,
-    color: 'text-cyan-400',
-    bgColor: 'bg-cyan-400/10',
-    status: 'disconnected',
-    connections: 0,
-  },
-];
+import { initialDataSources, DataSource } from '@/lib/dataSources';
 
 export function DataSources() {
-  const [dataSources, setDataSources] = useState(() => {
+  const [dataSources, setDataSources] = useState<DataSource[]>(() => {
     try {
       const savedDataSources = sessionStorage.getItem('dataSources');
       if (savedDataSources) {
-        // Re-assign the icon component after parsing
-        return JSON.parse(savedDataSources).map((source: any) => ({
-          ...source,
-          icon: Database,
-        }));
+        const parsedSources: Partial<DataSource>[] = JSON.parse(savedDataSources);
+        return initialDataSources.map(initialSource => {
+          const savedSource = parsedSources.find(s => s.id === initialSource.id);
+          return savedSource ? { ...initialSource, ...savedSource } : initialSource;
+        });
       }
     } catch (error) {
       console.error("Failed to parse data sources from session storage", error);
@@ -66,7 +34,8 @@ export function DataSources() {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem('dataSources', JSON.stringify(dataSources));
+      const serializableDataSources = dataSources.map(({ icon, ...rest }) => rest);
+      sessionStorage.setItem('dataSources', JSON.stringify(serializableDataSources));
     } catch (error) {
       console.error("Failed to save data sources to session storage", error);
     }

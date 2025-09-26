@@ -1,0 +1,39 @@
+Question,Answer,Tag
+Give one example of a control that ensures Availability.,"Redundancy, load balancing, DDoS protection",CIA Triad
+What is  Server Message Block SMB protocol?,a network file sharing protocol that,Protocols
+What is Syslog?,not tied to a single transport protocol. The choice of protocol depends,Protocols
+What is the function of the physical layer layer?,wifi cable,OSI Model
+Which port is used by smb port?,,Ports
+"Which port is used by aspect of encryption is gone, but it proves something very important?",,Ports
+Which port does RDP use?,3389,Ports
+Which port is used by active?,"client bolta server ko main ready hu, mere iss port pe connect krke file",Ports
+What is the Transm?,sion Control Protocol TCP,Protocols
+What is A DHCP Dynamic Host Configuration Protocol) server?,,Protocols
+What does CIA triad stand for?,"Confidentiality, Integrity, Availability",CIA Triad
+What is System Logging Protocol?,a standard for sending event messages over a,Protocols
+Which port is used by Supports compliance?,Implementing defense-in-depth helps organizations,Ports
+What are the three steps of the TCP handshake?,SYN → SYN-ACK → ACK,TCP
+Which port is used by SMTP?,simple mail transfer protocol (port,Ports
+What is the function of the A defense-in-depth strategy is built around three core layers of controls layer?,,OSI Model
+What is the function of the of security measures across multiple layers of your IT environment layer?,,OSI Model
+What is ?,a standard email protocol used to retrieve email messages from a mail,Protocols
+What are the four DHCP steps (DORA)?,"Discover, Offer, Request, Acknowledge",DHCP
+What does DNS use for communication?,Port 53 (UDP/TCP),Ports
+Which port is used by Enforce strong security?,For high-risk remote access ports like SSH and,Ports
+Which port is used by 1433/1434 TCP MS SQL Server?,"Default port for Microsoft SQL databases,",Ports
+"What is protocol  The network protocol used, such as  TCP ,  UDP , or  ICMP . Th?",helps,Protocols
+Which port is used by 8080/8443 TCP Alternate Web Ports?,"Can be used for proxies, web",Ports
+Which port is used by Support for mobile devices?,DHCP simplifies the process for mobile,Ports
+What is the main difference between symmetric and asymmetric encryption?,Symmetric uses one key; Asymmetric uses public/private key pair,Encryption
+Which port is used by Focus on critical assets?,Pay close attention to ports on servers that handle,Ports
+What is the function of the Enhances threat detection layer?,Multiple layers increase the chances of,OSI Model
+What is Th?,is the exact process used by modern security protocols like TLS,Protocols
+Which protocol uses port 22?,SSH,Ports
+Which port is used by passive?,"client bolta tell me port and address, i will come and pick the",Ports
+Which protocol uses ports 20 and 21?,"FTP (20: data, 21: control)",Ports
+What are the three principles of Defense in Depth?,"Physical, Technical, Administrative controls",Defense in Depth
+Which port is used by Parsing and Filtering?,This is the most important difference. A Heavy,Ports
+What is log aggregation?,"Centralized collection, parsing, enrichment, and storage of logs for analysis.",SOC
+What is ?,an email protocol that allows you to access and manage your email,Protocols
+What is hashing with salt?,Adding a unique random string before hashing to make hashes unique,Hashing
+What is An LDAP Lightweight Directory Access Protocol) server?,,Protocols

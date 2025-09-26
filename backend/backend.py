@@ -127,7 +127,7 @@ def train_model_stream():
     # --- Dynamic Model Selection ---
     model_map = {
         'City': 'City.onnx',
-        'Oil and Gas': 'OilandGas.pkl',
+        'Oil and Gas': 'OilandGas.onnx',
         'Traffic': 'Traffic.onnx',
         'Airports': 'Airports.onnx'
     }
