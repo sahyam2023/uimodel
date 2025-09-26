@@ -35,11 +35,11 @@ export function ConfigurationCard({ parameters, onParametersChange, isTraining }
       </CardHeader>
       <CardContent>
         <fieldset disabled={isTraining} className="disabled:opacity-70">
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-800">
-              <TabsTrigger value="general" className="data-[state=active]:bg-slate-700">General</TabsTrigger>
-              <TabsTrigger value="hyperparameters" className="data-[state=active]:bg-slate-700">Hyperparameters</TabsTrigger>
-              <TabsTrigger value="validation" className="data-[state=active]:bg-slate-700">Validation</TabsTrigger>
+                              <Tabs defaultValue="general" className="w-full">
+            <TabsList className="inline-flex items-center justify-center rounded-lg bg-slate-800 p-1">
+              <TabsTrigger value="general" className="px-4 py-1.5 rounded-md text-sm data-[state=active]:bg-slate-700">General</TabsTrigger>
+              <TabsTrigger value="hyperparameters" className="px-4 py-1.5 rounded-md text-sm data-[state=active]:bg-slate-700">Hyperparameters</TabsTrigger>
+              <TabsTrigger value="validation" className="px-4 py-1.5 rounded-md text-sm data-[state=active]:bg-slate-700">Validation</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-6 mt-6">

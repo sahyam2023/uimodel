@@ -151,18 +151,20 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload 
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Section for File Upload */}
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="file-upload" className="text-sm font-medium text-slate-300">
               Upload Dataset File
             </Label>
+            {/* Constrained the max-width of the file input */}
             <Input
               id="file-upload"
               type="file"
               ref={fileInputRef}
               accept=".csv,.json,.xml"
               onChange={handleFileSelect}
-              className="cursor-pointer bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-3 file:py-1.5 file:mr-3 file:rounded-md text-sm"
+              className="cursor-pointer max-w-sm bg-slate-800 border-slate-700 text-white file:text-slate-300 file:bg-slate-700 file:border-none file:px-3 file:py-1.5 file:mr-3 file:rounded-lg text-sm"
               disabled={isFileUploaded || isUploading}
             />
           </div>
@@ -200,7 +202,7 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload 
             <Button
               onClick={handleUpload}
               disabled={!selectedFile || isUploading || isFileUploaded}
-              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700"
             >
               {isUploading ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
@@ -211,7 +213,8 @@ export function DataIngestCard({ onUploadSuccess, isFileUploaded, onResetUpload 
           )}
         </div>
         
-        <div className="space-y-2">
+        {/* Section for External Data Sources */}
+        <div className="space-y-3 pt-2">
           <Label className="text-sm font-medium text-slate-300">
             Upload to external data sources (optional)
           </Label>

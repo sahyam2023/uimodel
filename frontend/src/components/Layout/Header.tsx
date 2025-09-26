@@ -50,15 +50,15 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-indigo-600 text-white">JD</AvatarFallback>
+                  <AvatarFallback className="bg-indigo-600 text-white">SC</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700" align="end" forceMount>
               <DropdownMenuLabel className="font-normal text-white">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">John Doe</p>
-                  <p className="text-xs leading-none text-slate-400">john.doe@smartcity.ai</p>
+                  <p className="text-sm font-medium leading-none">sahyam</p>
+                  <p className="text-xs leading-none text-slate-400">sahyam@i2vsys.com</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-slate-700" />

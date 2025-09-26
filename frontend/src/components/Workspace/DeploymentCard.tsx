@@ -74,20 +74,20 @@ export function DeploymentCard({ result, onWorkspaceReset }: DeploymentCardProps
           {/* Performance Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 bg-slate-800 rounded-lg text-center">
-              <p className="text-sm text-slate-400">Accuracy</p>
-              <p className="text-xl font-bold text-green-400">{result.accuracy}%</p>
+              <p className="text-xs sm:text-sm text-slate-400">Accuracy</p>
+              <p className="text-lg sm:text-xl font-bold text-green-400">{result.accuracy}%</p>
             </div>
             <div className="p-3 bg-slate-800 rounded-lg text-center">
-              <p className="text-sm text-slate-400">Precision</p>
-              <p className="text-xl font-bold text-blue-400">{result.precision}%</p>
+              <p className="text-xs sm:text-sm text-slate-400">Precision</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-400">{result.precision}%</p>
             </div>
             <div className="p-3 bg-slate-800 rounded-lg text-center">
-              <p className="text-sm text-slate-400">Recall</p>
-              <p className="text-xl font-bold text-purple-400">{result.recall}%</p>
+              <p className="text-xs sm:text-sm text-slate-400">Recall</p>
+              <p className="text-lg sm:text-xl font-bold text-purple-400">{result.recall}%</p>
             </div>
             <div className="p-3 bg-slate-800 rounded-lg text-center">
-              <p className="text-sm text-slate-400">F1-Score</p>
-              <p className="text-xl font-bold text-yellow-400">{result.f1Score}%</p>
+              <p className="text-xs sm:text-sm text-slate-400">F1-Score</p>
+              <p className="text-lg sm:text-xl font-bold text-yellow-400">{result.f1Score}%</p>
             </div>
           </div>
 
