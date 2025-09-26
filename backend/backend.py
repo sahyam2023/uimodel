@@ -225,10 +225,12 @@ def generate_model():
     print(f"Received parameters for model generation: {params}")
 
     # --- Simulate Processing Delay ---
-    training_time_seconds = training_time_minutes * 60
-    print(f"Simulating model training for {training_time_minutes} minutes ({training_time_seconds} seconds)...")
-    time.sleep(training_time_seconds)
-    print("Simulation complete.")
+    # The frontend already simulates the delay, so we remove it from the backend
+    # to prevent waiting twice.
+    # training_time_seconds = training_time_minutes * 60
+    # print(f"Simulating model training for {training_time_minutes} minutes ({training_time_seconds} seconds)...")
+    # time.sleep(training_time_seconds)
+    print("Backend processing complete, generating metrics immediately.")
 
     # --- Dynamic Model Selection ---
     try:

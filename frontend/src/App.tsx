@@ -149,6 +149,12 @@ function App() {
 
   const handleFileUploadSuccess = () => setIsFileUploaded(true);
 
+  const handleResetUpload = () => {
+    setIsFileUploaded(false);
+    sessionStorage.removeItem('selectedFile');
+    toast.info('File cleared', { description: 'You can now upload a new file.' });
+  };
+
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (isTraining) {
@@ -178,6 +184,7 @@ function App() {
                 onStopTraining={handleStopTraining}
                 isFileUploaded={isFileUploaded}
                 onFileUploadSuccess={handleFileUploadSuccess}
+                onResetUpload={handleResetUpload}
                 modelParameters={modelParameters}
                 onParametersChange={setModelParameters}
                 trainingLogs={trainingLogs}

@@ -15,6 +15,7 @@ interface WorkspaceProps {
   onStopTraining: () => void;
   isFileUploaded: boolean;
   onFileUploadSuccess: () => void;
+  onResetUpload: () => void;
   modelParameters: ModelParameters;
   onParametersChange: (params: ModelParameters) => void;
   trainingLogs: TrainingLog[];
@@ -32,6 +33,7 @@ export function Workspace({
   onStopTraining,
   isFileUploaded,
   onFileUploadSuccess,
+  onResetUpload,
   modelParameters,
   onParametersChange,
   trainingLogs,
@@ -41,14 +43,15 @@ export function Workspace({
   estimatedTrainingTime,
 }: WorkspaceProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [showMonitoring, setShowMonitoring] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   useEffect(() => {
-    setShowMonitoring(isTraining);
     if (isTraining) {
       setCurrentStep(3);
+      setIsFinalizing(false);
     } else if (isComplete) {
       setCurrentStep(4);
+      setIsFinalizing(false);
     } else if (isFileUploaded) {
       setCurrentStep(2);
     } else {
@@ -56,9 +59,19 @@ export function Workspace({
     }
   }, [isTraining, isComplete, isFileUploaded]);
 
+  useEffect(() => {
+    // This effect handles the "finalizing" state
+    if (!isTraining && currentStep === 3 && !isComplete) {
+      setIsFinalizing(true);
+    }
+  }, [isTraining, currentStep, isComplete]);
+
+
   const handleStartTrainingClick = () => {
     onStartTraining(modelParameters);
   };
+
+  const showSidebar = isTraining || isComplete || isFinalizing;
 
   return (
     <div className="space-y-8">
@@ -75,48 +88,53 @@ export function Workspace({
         isComplete={isComplete} 
       />
 
-      <div className={`grid grid-cols-1 gap-6 transition-all duration-300 ${
-        showMonitoring ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
-      }`}>
-        <div className={`space-y-6 ${showMonitoring ? 'lg:col-span-2' : 'lg:col-span-1'}`}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Row 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataIngestCard 
               onUploadSuccess={onFileUploadSuccess} 
               isFileUploaded={isFileUploaded} 
+              onResetUpload={onResetUpload}
             />
             <ConfigurationCard
               parameters={modelParameters}
               onParametersChange={onParametersChange}
-              isTraining={isTraining}
+              isTraining={isTraining || isFinalizing}
             />
-            <div className="lg:col-span-2">
-              <TrainingCard
-                isFileUploaded={isFileUploaded}
-                isTraining={isTraining}
-                onStartTraining={handleStartTrainingClick}
-                onStopTraining={onStopTraining}
-                estimatedTrainingTime={estimatedTrainingTime}
-              />
-            </div>
-             {isComplete && generationResult && (
-                <div className="lg:col-span-2">
-                    <DeploymentCard result={generationResult} />
-                </div>
-            )}
+          </div>
+
+          {/* Row 2 */}
+          <div>
+            <TrainingCard
+              isFileUploaded={isFileUploaded}
+              isTraining={isTraining}
+              onStartTraining={handleStartTrainingClick}
+              onStopTraining={onStopTraining}
+              estimatedTrainingTime={estimatedTrainingTime}
+              isFinalizing={isFinalizing}
+            />
           </div>
         </div>
-        
-        <div className={`transition-all duration-300 ${showMonitoring ? 'opacity-100' : 'opacity-0 hidden'}`}>
-            <LiveMonitoringSidebar 
-                isVisible={showMonitoring} 
-                isTraining={isTraining}
-                logs={trainingLogs}
-                remainingTime={remainingTime}
-                currentEpoch={currentEpoch}
-                totalEpochs={modelParameters.epochs}
-                accuracyData={accuracyData}
-                estimatedDuration={estimatedTrainingTime}
+
+        {/* Sidebar */}
+        <div className={`lg:col-span-1 transition-opacity duration-300 ${showSidebar ? 'opacity-100' : 'opacity-0'}`}>
+          {isTraining || isFinalizing ? (
+            <LiveMonitoringSidebar
+              isVisible={true}
+              isTraining={isTraining}
+              isFinalizing={isFinalizing}
+              logs={trainingLogs}
+              remainingTime={remainingTime}
+              currentEpoch={currentEpoch}
+              totalEpochs={modelParameters.epochs}
+              accuracyData={accuracyData}
+              estimatedDuration={estimatedTrainingTime}
             />
+          ) : isComplete && generationResult ? (
+            <DeploymentCard result={generationResult} />
+          ) : null}
         </div>
       </div>
     </div>

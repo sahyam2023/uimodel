@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 interface TrainingCardProps {
   isFileUploaded: boolean;
   isTraining: boolean;
+  isFinalizing: boolean;
   onStartTraining: () => void;
   onStopTraining: () => void;
-  estimatedTrainingTime: number; // in seconds
+  remainingTime: number;
 }
 
 const stopMessages = [
@@ -26,12 +27,12 @@ const stopMessages = [
 export function TrainingCard({
   isFileUploaded,
   isTraining,
+  isFinalizing,
   onStartTraining,
   onStopTraining,
-  estimatedTrainingTime,
+  remainingTime,
 }: TrainingCardProps) {
   const [gpuUtilization, setGpuUtilization] = useState(0);
-  const [remainingTime, setRemainingTime] = useState(estimatedTrainingTime);
   const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [stoppingProgress, setStoppingProgress] = useState(0);
@@ -39,26 +40,19 @@ export function TrainingCard({
 
   useEffect(() => {
     let utilizationInterval: NodeJS.Timeout;
-    let timeInterval: NodeJS.Timeout;
 
     if (isTraining) {
-      setRemainingTime(estimatedTrainingTime);
       utilizationInterval = setInterval(() => {
         setGpuUtilization(Math.floor(Math.random() * (98 - 70 + 1)) + 70);
       }, 2000);
-
-      timeInterval = setInterval(() => {
-        setRemainingTime(prev => (prev > 0 ? prev - 1 : 0));
-      }, 1000);
     } else {
       setGpuUtilization(0);
     }
 
     return () => {
       clearInterval(utilizationInterval);
-      clearInterval(timeInterval);
     };
-  }, [isTraining, estimatedTrainingTime]);
+  }, [isTraining]);
 
   const handleStopClick = () => {
     setIsStopConfirmOpen(true);
@@ -92,11 +86,14 @@ export function TrainingCard({
   };
 
   const formatTime = (seconds: number) => {
+    if (seconds < 0) seconds = 0;
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}m ${remainingSeconds}s`;
   };
+
+  const showStartButton = !isTraining && !isFinalizing;
 
   return (
     <>
@@ -111,7 +108,7 @@ export function TrainingCard({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {!isFileUploaded && (
+          {!isFileUploaded && showStartButton && (
             <div className="p-4 bg-amber-900/20 border border-amber-800 rounded-md">
               <p className="text-sm text-amber-300">
                 Please upload a dataset file first to enable model training.
@@ -120,10 +117,10 @@ export function TrainingCard({
           )}
 
           <div className="space-y-4">
-            {!isTraining ? (
+            {showStartButton ? (
               <Button
                 onClick={onStartTraining}
-                disabled={!isFileUploaded}
+                disabled={!isFileUploaded || isFinalizing}
                 className="w-full h-12 text-base bg-indigo-600 hover:bg-indigo-700"
                 size="lg"
               >
@@ -134,13 +131,14 @@ export function TrainingCard({
               <div className="flex space-x-2">
                 <Button variant="ghost" className="w-full h-12 text-base" disabled>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Training Model...
+                  {isFinalizing ? 'Finalizing model...' : 'Training Model...'}
                 </Button>
                 <Button
                   onClick={handleStopClick}
                   variant="destructive"
                   className="h-12"
                   size="lg"
+                  disabled={isFinalizing}
                 >
                   <XCircle className="mr-2 h-5 w-5" />
                   Stop
@@ -153,7 +151,7 @@ export function TrainingCard({
             <div className="p-3 bg-slate-800 rounded-lg">
               <p className="text-slate-400">Remaining Time</p>
               <p className="text-white font-medium">
-                {isTraining ? formatTime(remainingTime) : 'N/A'}
+                {isTraining || isFinalizing ? formatTime(remainingTime) : 'N/A'}
               </p>
             </div>
             <div className="p-3 bg-slate-800 rounded-lg">
