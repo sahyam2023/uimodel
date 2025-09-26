@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Cpu, Thermometer, MemoryStick, HardDrive, Zap, Server as ServerIcon, Globe } from 'lucide-react';
+import { Cpu, Thermometer, MemoryStick, HardDrive, Zap, Server as ServerIcon, Globe, Loader2 } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { cn } from '@/lib/utils';
 import { Server, MetricChartProps, TemperatureDisplayProps } from '@/types';
@@ -195,11 +195,21 @@ const ServerStatusIcon = ({ status }: { status: 'online' | 'offline' }) => (
   
   const ServerCard = ({ server }: { server: Server }) => {
     const [showDetails, setShowDetails] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
   
     const handleClick = () => {
-      if (server.status === 'online') {
-        setShowDetails(prev => !prev);
-      }
+        if (server.status === 'online') {
+            if (showDetails) {
+                setShowDetails(false);
+            } else {
+                setIsLoading(true);
+                const delay = Math.random() * 3000 + 3000; // 3-6 seconds delay
+                setTimeout(() => {
+                    setShowDetails(true);
+                    setIsLoading(false);
+                }, delay);
+            }
+        }
     };
   
     return (
@@ -218,8 +228,8 @@ const ServerStatusIcon = ({ status }: { status: 'online' | 'offline' }) => (
                 </p>
               </div>
             </div>
-            <Button onClick={handleClick} disabled={server.status === 'offline'} size="sm">
-              {showDetails ? 'Hide' : 'Details'}
+            <Button onClick={handleClick} disabled={server.status === 'offline' || isLoading} size="sm">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (showDetails ? 'Hide' : 'Details')}
             </Button>
           </div>
         </CardHeader>

@@ -6,6 +6,73 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { ChatMessage } from '@/types';
 
+const qaKnowledgeBase = [
+  {
+    keywords: ['hello', 'hi', 'hey'],
+    answer: 'Hello there! How can I assist you with your model training today?'
+  },
+  {
+    keywords: ['how are you', 'how is it going'],
+    answer: "I'm just a set of algorithms, but I'm operating at peak efficiency! Thanks for asking."
+  },
+  {
+    keywords: ['who are you', 'what are you'],
+    answer: "I'm your AI assistant, here to help you navigate the workspace and answer questions about your models."
+  },
+  {
+    keywords: ['thanks', 'thank you'],
+    answer: "You're welcome! Let me know if there's anything else I can help with."
+  },
+  {
+    keywords: ['training time', 'how long to train'],
+    answer: 'Model training typically takes between 3 to 10 minutes, depending on the dataset size and model complexity.'
+  },
+  {
+    keywords: ['what model', 'which algorithm'],
+    answer: 'We are using a custom-tuned version of a Transformer-based architecture, specifically optimized for sequence and time-series data.'
+  },
+  {
+    keywords: ['dataset size', 'how much data'],
+    answer: 'The current dataset contains approximately 1.5 million records, split into training, validation, and test sets.'
+  },
+  {
+    keywords: ['hyperparameters', 'tuning'],
+    answer: 'Key hyperparameters include a learning rate of 0.001, a batch size of 64, and 10 training epochs. These are configurable in the workspace.'
+  },
+  {
+    keywords: ['can i stop', 'interrupt training'],
+    answer: 'Yes, you can manually stop the training process at any time using the "Stop Training" button in the Training Card.'
+  },
+  {
+    keywords: ['what happens after training', 'next step'],
+    answer: 'After training is complete, the model results, including accuracy and performance metrics, will be displayed in the Deployment Card.'
+  },
+  {
+    keywords: ['gpu', 'hardware'],
+    answer: 'Training is accelerated using NVIDIA A100 GPUs to ensure efficient processing.'
+  },
+  {
+    keywords: ['validation set', 'how is it validated'],
+    answer: 'The model is validated against a separate 20% validation set to measure its performance on unseen data during training.'
+  },
+  {
+    keywords: ['overfitting', 'prevent overfitting'],
+    answer: 'We use techniques like dropout with a rate of 0.3 and early stopping to prevent overfitting.'
+  },
+  {
+    keywords: ['change parameters', 'adjust settings'],
+    answer: 'You can adjust model parameters like learning rate, epochs, and batch size in the "Configuration" card before starting the training.'
+  },
+  {
+    keywords: ['what data', 'data format'],
+    answer: 'The model expects data in CSV format, with features in separate columns and the target variable clearly identified.'
+  },
+  {
+    keywords: ['monitor progress', 'track training'],
+    answer: 'You can monitor live training progress, including accuracy and loss, in the "Live Monitoring" sidebar that appears during training.'
+  }
+];
+
 interface ChatBotProps {
   isTraining?: boolean;
   hasResults?: boolean;
@@ -27,6 +94,15 @@ export function ChatBot({ isTraining = false, hasResults = false, accuracy }: Ch
 
   const getContextualResponse = (input: string): string => {
     const lowerInput = input.toLowerCase();
+
+    // Check knowledge base first
+    for (const qa of qaKnowledgeBase) {
+      for (const keyword of qa.keywords) {
+        if (lowerInput.includes(keyword)) {
+          return qa.answer;
+        }
+      }
+    }
     
     if (lowerInput.includes('status')) {
       if (location.pathname === '/dashboard') {
@@ -55,12 +131,8 @@ export function ChatBot({ isTraining = false, hasResults = false, accuracy }: Ch
       }
       return 'I can help you navigate the platform and answer questions about your AI models.';
     }
-    
-    if (lowerInput.includes('training')) {
-      return 'Model training typically takes 3-10 minutes depending on your dataset size and model complexity. I\'ll keep you updated on the progress.';
-    }
-    
-    return 'I\'m here to help! You can ask me about system status, model accuracy, training progress, or general platform questions.';
+        
+    return "sorry please try later.";
   };
 
   const handleSendMessage = () => {
