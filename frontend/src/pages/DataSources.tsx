@@ -9,6 +9,7 @@ import { Plus, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Settings,
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import { initialDataSources, DataSource } from '@/lib/dataSources';
+import { ConnectionManager } from '@/components/ConnectionManager';
 
 export function DataSources() {
   const [dataSources, setDataSources] = useState<DataSource[]>(() => {
@@ -29,6 +30,9 @@ export function DataSources() {
 
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConnectionManagerOpen, setIsConnectionManagerOpen] = useState(false);
+  const [isAddingConnection, setIsAddingConnection] = useState(false);
+  const [isDisconnectingConnection, setIsDisconnectingConnection] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [connectionDetails, setConnectionDetails] = useState({ host: '', port: '', database: '', username: '', password: '' });
 
@@ -47,6 +51,11 @@ export function DataSources() {
     setIsDialogOpen(true);
   };
 
+  const handleSettingsClick = (sourceId: string) => {
+    setSelectedSourceId(sourceId);
+    setIsConnectionManagerOpen(true);
+  };
+
   const handleDisconnectClick = (sourceId: string) => {
     const sourceToDisconnect = dataSources.find(s => s.id === sourceId);
     if (!sourceToDisconnect) return;
@@ -56,7 +65,58 @@ export function DataSources() {
         source.id === sourceId ? { ...source, status: 'disconnected', connections: 0 } : source
       )
     );
-    toast.info(`Disconnected from ${sourceToDisconnect.name}`);
+    toast.info(`Disconnected all connections from ${sourceToDisconnect.name}`);
+  };
+
+  const handleDisconnectOne = async (sourceId: string) => {
+    setIsDisconnectingConnection(true);
+    const source = dataSources.find(s => s.id === sourceId);
+    if (!source) return;
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      setDataSources(currentSources =>
+        currentSources.map(s => {
+          if (s.id === sourceId) {
+            const newConnections = s.connections - 1;
+            return {
+              ...s,
+              connections: newConnections,
+              status: newConnections > 0 ? 'connected' : 'disconnected',
+            };
+          }
+          return s;
+        })
+      );
+      toast.info(`Disconnected one connection from ${source.name}`);
+    } catch (error) {
+      toast.error('Failed to disconnect connection.');
+    } finally {
+      setIsDisconnectingConnection(false);
+      setIsConnectionManagerOpen(false);
+    }
+  };
+
+  const handleAddConnection = async (sourceId: string) => {
+    setIsAddingConnection(true);
+    const source = dataSources.find(s => s.id === sourceId);
+    if (!source) return;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      setDataSources(currentSources =>
+        currentSources.map(s =>
+          s.id === sourceId
+            ? { ...s, connections: s.connections + 1 }
+            : s
+        )
+      );
+      toast.success(`New connection to ${source.name} established.`);
+    } catch (error) {
+      toast.error('Failed to add a new connection.');
+    } finally {
+      setIsAddingConnection(false);
+      setIsConnectionManagerOpen(false);
+    }
   };
 
   const handleTestConnection = async () => {
@@ -67,10 +127,9 @@ export function DataSources() {
       const response = await apiService.testConnection({ id: selectedSourceId, ...connectionDetails });
       toast.success(response.message);
 
-      // Update status in the UI
       setDataSources(currentSources =>
         currentSources.map(source =>
-          source.id === selectedSourceId ? { ...source, status: 'connected', connections: 1 } : source
+          source.id === selectedSourceId ? { ...source, status: 'connected', connections: source.connections + 1 } : source
         )
       );
 
@@ -99,7 +158,7 @@ export function DataSources() {
           <h3 className="text-xl font-semibold text-white mb-4">Databases & Warehouses</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dataSources.filter(s => s.type === 'database').map((source) => (
-              <DataSourceCard key={source.id} source={source} onConnect={handleConnectClick} onDisconnect={handleDisconnectClick} />
+              <DataSourceCard key={source.id} source={source} onConnect={handleConnectClick} onDisconnect={handleDisconnectClick} onSettings={handleSettingsClick} />
             ))}
           </div>
         </div>
@@ -107,7 +166,7 @@ export function DataSources() {
           <h3 className="text-xl font-semibold text-white mb-4">Streaming Event Sources</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dataSources.filter(s => s.type === 'streaming').map((source) => (
-              <DataSourceCard key={source.id} source={source} onConnect={handleConnectClick} onDisconnect={handleDisconnectClick} />
+              <DataSourceCard key={source.id} source={source} onConnect={handleConnectClick} onDisconnect={handleDisconnectClick} onSettings={handleSettingsClick} />
             ))}
           </div>
         </div>
@@ -156,6 +215,15 @@ export function DataSources() {
           </div>
         </DialogContent>
       </Dialog>
+      <ConnectionManager
+        isOpen={isConnectionManagerOpen}
+        onOpenChange={setIsConnectionManagerOpen}
+        dataSource={selectedSourceData}
+        onAddConnection={handleAddConnection}
+        onDisconnectOne={handleDisconnectOne}
+        isAddingConnection={isAddingConnection}
+        isDisconnectingConnection={isDisconnectingConnection}
+      />
     </div>
   );
 }
@@ -164,9 +232,10 @@ interface DataSourceCardProps {
   source: DataSource;
   onConnect: (id: string) => void;
   onDisconnect: (id: string) => void;
+  onSettings: (id: string) => void;
 }
 
-const DataSourceCard: React.FC<DataSourceCardProps> = ({ source, onConnect, onDisconnect }) => {
+const DataSourceCard: React.FC<DataSourceCardProps> = ({ source, onConnect, onDisconnect, onSettings }) => {
   return (
     <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
       <CardHeader>
@@ -229,7 +298,8 @@ const DataSourceCard: React.FC<DataSourceCardProps> = ({ source, onConnect, onDi
             variant="outline"
             size="sm"
             className="border-slate-700 text-slate-300 hover:bg-slate-800"
-            disabled
+            onClick={() => onSettings(source.id)}
+            disabled={source.status !== 'connected'}
           >
             <Settings className="h-4 w-4" />
           </Button>
